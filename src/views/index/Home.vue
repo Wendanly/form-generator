@@ -220,6 +220,7 @@ export default {
   },
   computed: {},
   watch: {
+    
     // eslint-disable-next-line func-names
     "activeData.__config__.label"(val, oldVal) {
       console.log(val);
