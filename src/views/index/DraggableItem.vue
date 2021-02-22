@@ -34,6 +34,7 @@ const layouts = {
     const { activeItem } = this.$listeners;
     const config = currentItem.__config__;
     const child = renderChildren.apply(this, arguments);
+    //设置高亮
     let className =
       this.activeId === config.formId
         ? "drawing-item active-from-item"
@@ -42,6 +43,7 @@ const layouts = {
       className += " unfocus-bordered";
     let labelWidth = config.labelWidth ? `${config.labelWidth}px` : null;
     if (config.showLabel === false) labelWidth = "0";
+    //以下代码是react编写render函数的方式，渲染不同的组件
     return (
       <el-col
         span={config.span}
@@ -70,7 +72,8 @@ const layouts = {
       </el-col>
     );
   },
-  rowFormItem(h, currentItem, index, list) {
+  //rowFormItem类型目前仅存在于行容器中
+  rowFormItemWrap(h, currentItem, index, list) {
     const { activeItem } = this.$listeners;
     const config = currentItem.__config__;
     const className =
@@ -113,6 +116,7 @@ const layouts = {
       </el-col>
     );
   },
+  //raw类型目前仅存在于表格元素中
   raw(h, currentItem, index, list) {
     const config = currentItem.__config__;
     const child = renderChildren.apply(this, arguments);
@@ -156,8 +160,7 @@ export default {
     console.log("create draggableitem");
   },
   render(h) {
-    const layout = layouts[this.currentItem.__config__.layout];
-
+    const layout = layouts[this.currentItem.__config__.layout]; //组件布局类型
     if (layout) {
       return layout.call(
         this,

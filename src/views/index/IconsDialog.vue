@@ -36,7 +36,8 @@
 <script>
 import iconList from '@/utils/icon.json'
 
-const originList = iconList.map(name => `el-icon-${name}`)
+const originList = iconList.map(name => `el-icon-${name}`);
+// console.log(originList);
 
 export default {
   inheritAttrs: false,
@@ -57,16 +58,18 @@ export default {
       }
     }
   },
+  mounted(){
+  },
   methods: {
     onOpen() {
-      this.active = this.current
+      this.active = this.current;//回显时高亮
       this.key = ''
     },
     onClose() {},
     onSelect(icon) {
       this.active = icon
-      this.$emit('select', icon)
-      this.$emit('update:visible', false)
+      this.$emit('select', icon);
+      this.$emit('update:visible', false);//关闭模态框
     }
   }
 }

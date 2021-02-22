@@ -1,4 +1,6 @@
-import { deepClone } from '@/utils/index'
+import {
+  deepClone
+} from '@/utils/index'
 
 const componentChild = {}
 /**
@@ -9,10 +11,11 @@ const componentChild = {}
 const slotsFiles = require.context('./slots', false, /\.js$/)
 const keys = slotsFiles.keys() || []
 keys.forEach(key => {
-  const tag = key.replace(/^\.\/(.*)\.\w+$/, '$1')
-  const value = slotsFiles(key).default
-  componentChild[tag] = value
-})
+  const tag = key.replace(/^\.\/(.*)\.\w+$/, '$1');
+  const value = slotsFiles(key).default;
+  componentChild[tag] = value;
+});
+// console.log(componentChild);
 
 function vModel(dataObject, defaultValue) {
   dataObject.props.value = defaultValue
@@ -21,9 +24,9 @@ function vModel(dataObject, defaultValue) {
     this.$emit('input', val)
   }
 }
-
+//挂载slot
 function mountSlotFiles(h, confClone, children) {
-  const childObjs = componentChild[confClone.__config__.tag]
+  const childObjs = componentChild[confClone.__config__.tag];
   if (childObjs) {
     Object.keys(childObjs).forEach(key => {
       const childFunc = childObjs[key]
@@ -52,14 +55,16 @@ function buildDataObject(confClone, dataObject) {
     if (key === '__vModel__') {
       vModel.call(this, dataObject, confClone.__config__.defaultValue)
     } else if (dataObject[key] !== undefined) {
-      if (dataObject[key] === null
-        || dataObject[key] instanceof RegExp
-        || ['boolean', 'string', 'number', 'function'].includes(typeof dataObject[key])) {
+      if (dataObject[key] === null ||
+        dataObject[key] instanceof RegExp || ['boolean', 'string', 'number', 'function'].includes(typeof dataObject[key])) {
         dataObject[key] = val
       } else if (Array.isArray(dataObject[key])) {
         dataObject[key] = [...dataObject[key], ...val]
       } else {
-        dataObject[key] = { ...dataObject[key], ...val }
+        dataObject[key] = {
+          ...dataObject[key],
+          ...val
+        }
       }
     } else {
       dataObject.attrs[key] = val
@@ -95,7 +100,7 @@ function makeDataObject() {
     refInFor: true
   }
 }
-
+//这是用render函数渲染的vue组件
 export default {
   props: {
     conf: {
@@ -104,9 +109,10 @@ export default {
     }
   },
   render(h) {
-    const dataObject = makeDataObject()
-    const confClone = deepClone(this.conf)
-    const children = this.$slots.default || []
+    // console.log(this.conf);
+    const dataObject = makeDataObject(); //render可以识别的 “数据对象（dataObject）
+    const confClone = deepClone(this.conf); //组件属性
+    const children = this.$slots.default || []; //获取子元素,可能没有
 
     // 如果slots文件夹存在与当前tag同名的文件，则执行文件中的代码
     mountSlotFiles.call(this, h, confClone, children)
@@ -115,8 +121,9 @@ export default {
     emitEvents.call(this, confClone)
 
     // 将json表单配置转化为vue render可以识别的 “数据对象（dataObject）”
-    buildDataObject.call(this, confClone, dataObject)
-
-    return h(this.conf.__config__.tag, dataObject, children)
+    buildDataObject.call(this, confClone, dataObject);
+    let dd = h(this.conf.__config__.tag, dataObject, children);
+    // console.log(dd);
+    return dd; //真正返回的vNodel
   }
 }

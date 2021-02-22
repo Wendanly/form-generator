@@ -1,5 +1,11 @@
-import { isArray } from 'util'
-import { exportDefault, titleCase, deepClone } from '@/utils/index'
+import {
+  isArray
+} from 'util'
+import {
+  exportDefault,
+  titleCase,
+  deepClone
+} from '@/utils/index'
 import ruleTrigger from './ruleTrigger'
 
 const units = {
@@ -7,6 +13,8 @@ const units = {
   MB: '1024 / 1024',
   GB: '1024 / 1024 / 1024'
 }
+
+
 let confGlobal
 const inheritAttrs = {
   file: '',
@@ -20,22 +28,25 @@ const inheritAttrs = {
  */
 export function makeUpJs(formConfig, type) {
   confGlobal = formConfig = deepClone(formConfig)
-  const dataList = []
+  console.log(confGlobal);
+  const formDataList = []
   const ruleList = []
   const optionsList = []
   const propsList = []
-  const methodList = mixinMethod(type)
+  const commonDataList = []
+  const methodList = mixinMethod(type); //基础方法
   const uploadVarList = []
   const created = []
-
+  //遍历每个表单，取出每个表单的相关属性放到vue生命周期里
   formConfig.fields.forEach(el => {
-    buildAttributes(el, dataList, ruleList, optionsList, methodList, propsList, uploadVarList, created)
+    buildAttributes(el, formDataList, commonDataList, ruleList, optionsList, methodList, propsList, uploadVarList, created);
   })
 
   const script = buildexport(
     formConfig,
     type,
-    dataList.join('\n'),
+    formDataList.join('\n'),
+    commonDataList.join('\n'),
     ruleList.join('\n'),
     optionsList.join('\n'),
     uploadVarList.join('\n'),
@@ -43,27 +54,39 @@ export function makeUpJs(formConfig, type) {
     methodList.join('\n'),
     created.join('\n')
   )
-  confGlobal = null
+  confGlobal = null; //清空全局变量
   return script
 }
 
 // 构建组件属性
-function buildAttributes(scheme, dataList, ruleList, optionsList, methodList, propsList, uploadVarList, created) {
+function buildAttributes(scheme, formDataList, commonDataList, ruleList, optionsList, methodList, propsList, uploadVarList, created) {
   const config = scheme.__config__
   const slot = scheme.__slot__
-  buildData(scheme, dataList)
-  buildRules(scheme, ruleList)
+  buildData(scheme, formDataList); //构建formData
+  buildcommonData(scheme, commonDataList); //构建普通的data字段，非表单里的，如：分页、对话框的关闭、打开灯字段
+  buildRules(scheme, ruleList); //构建校验规则
 
   // 特殊处理options属性
+  //scheme.options级联，slot.options 单选下拉、多选下拉
   if (scheme.options || (slot && slot.options && slot.options.length)) {
-    buildOptions(scheme, optionsList)
-    if (config.dataType === 'dynamic') {
+    buildOptions(scheme, optionsList); //
+    if (config.dataType === 'dynamic') { //级联、表格
       const model = `${scheme.__vModel__}Options`
-      const options = titleCase(model)
-      const methodName = `get${options}`
-      buildOptionMethod(methodName, model, methodList, scheme)
-      callInCreated(methodName, created)
+      const options = titleCase(model); //首字母大写
+      const methodName = `get${options}`; //定义获取下拉列表的方法名称
+      buildOptionMethod(methodName, model, methodList, scheme); //构建获取下拉列表的方法,之后会把构建好的方法合并到methodList里
+      callInCreated(methodName, created); //把该方法放到created里调用
     }
+  }
+  //添加分页组件的事件
+  switch (config.tag) {
+    case 'el-pagination':
+      buildPaginationMethod([config.eventName.currentChangeName, config.eventName.sizeChangeName], methodList, scheme); //构建分页组件的事件,如：页面改变、每页展示条数改变
+
+      break;
+
+    default:
+      break;
   }
 
   // 处理props
@@ -86,20 +109,22 @@ function buildAttributes(scheme, dataList, ruleList, optionsList, methodList, pr
 
   // 构建子级组件属性
   if (config.children) {
+    //再次遍历
     config.children.forEach(item => {
-      buildAttributes(item, dataList, ruleList, optionsList, methodList, propsList, uploadVarList, created)
+      buildAttributes(item, formDataList, commonDataList, ruleList, optionsList, methodList, propsList, uploadVarList, created)
     })
   }
 }
 
-// 在Created调用函数
+// 在Created调用的函数
 function callInCreated(methodName, created) {
   created.push(`this.${methodName}()`)
 }
 
 // 混入处理函数
 function mixinMethod(type) {
-  const list = []; const
+  const list = [];
+  const
     minxins = {
       file: confGlobal.formBtns ? {
         submitForm: `submitForm() {
@@ -132,36 +157,37 @@ function mixinMethod(type) {
   const methods = minxins[type]
   if (methods) {
     Object.keys(methods).forEach(key => {
-      list.push(methods[key])
+      list.push(methods[key]); //把已有的方法添加到list里
     })
   }
 
   return list
 }
 
-// 构建data
-function buildData(scheme, dataList) {
+// 构建data 取出vModel
+function buildData(scheme, formDataList) {
   const config = scheme.__config__
-  if (scheme.__vModel__ === undefined) return
-  const defaultValue = JSON.stringify(config.defaultValue)
-  dataList.push(`${scheme.__vModel__}: ${defaultValue},`)
+  if (scheme.__vModel__ === undefined) return;
+  const defaultValue = JSON.stringify(config.defaultValue);
+  formDataList.push(`${scheme.__vModel__}: ${defaultValue},`);
 }
 
 // 构建校验规则
 function buildRules(scheme, ruleList) {
   const config = scheme.__config__
-  if (scheme.__vModel__ === undefined) return
+  if (scheme.__vModel__ === undefined) return; //如果连vModel都没有那么要规则也没有用
   const rules = []
-  if (ruleTrigger[config.tag]) {
-    if (config.required) {
-      const type = isArray(config.defaultValue) ? 'type: \'array\',' : ''
-      let message = isArray(config.defaultValue) ? `请至少选择一个${config.label}` : scheme.placeholder
+  if (ruleTrigger[config.tag]) { //ruleTrigger配置规则中是否包含当前的表单类型
+    if (config.required) { //且当前表单是必填
+      const type = isArray(config.defaultValue) ? 'type: \'array\',' : ''; //当前表单的值是否是数组
+      let message = isArray(config.defaultValue) ? `请至少选择一个${config.label}` : scheme.placeholder; //设置提示信息
       if (message === undefined) message = `${config.label}不能为空`
       rules.push(`{ required: true, ${type} message: '${message}', trigger: '${ruleTrigger[config.tag]}' }`)
     }
+    //若有正则，需分外校验
     if (config.regList && isArray(config.regList)) {
       config.regList.forEach(item => {
-        if (item.pattern) {
+        if (item.pattern) { //有pattern字段
           rules.push(
             `{ pattern: ${eval(item.pattern)}, message: '${item.message}', trigger: '${ruleTrigger[config.tag]}' }`
           )
@@ -171,27 +197,50 @@ function buildRules(scheme, ruleList) {
     ruleList.push(`${scheme.__vModel__}: [${rules.join(',')}],`)
   }
 }
-
 // 构建options
 function buildOptions(scheme, optionsList) {
-  if (scheme.__vModel__ === undefined) return
+  if (scheme.__vModel__ === undefined) return;
   // el-cascader直接有options属性，其他组件都是定义在slot中，所以有两处判断
-  let { options } = scheme
-  if (!options) options = scheme.__slot__.options
-  if (scheme.__config__.dataType === 'dynamic') { options = [] }
+  let {
+    options
+  } = scheme; //先当做级联表单来取
+  if (!options) options = scheme.__slot__.options; //若为假，则不是级联，再当做普通下拉来取
+  if (scheme.__config__.dataType === 'dynamic') { //如果是级联或者表格，则清空，为啥要清空没搞懂！！
+    options = []
+  }
   const str = `${scheme.__vModel__}Options: ${JSON.stringify(options)},`
   optionsList.push(str)
 }
-
+// 构建Props
 function buildProps(scheme, propsList) {
   const str = `${scheme.__vModel__}Props: ${JSON.stringify(scheme.props.props)},`
   propsList.push(str)
+}
+// 构建普通data数据，如：打开、关闭模态框的标志位、分页组件必须参数等
+function buildcommonData(scheme, commonDataList) {
+  if (scheme.__config__.forData) {
+    let tag = scheme.__config__.tag; //通过标签来定制字段
+    switch (tag) {
+      case 'el-pagination':
+        commonDataList.push(`${scheme.__config__.forData.rowsKey}: ${scheme.__config__.forData.pageSize},`);
+        commonDataList.push(`${scheme.__config__.forData.pageKey}: ${scheme.__config__.forData.currentPage},`);
+        commonDataList.push(`${scheme.__config__.forData.totalKey}: ${scheme.__config__.forData.total},`);
+        break;
+      default:
+        break;
+    }
+
+  }
+
 }
 
 // el-upload的BeforeUpload
 function buildBeforeUpload(scheme) {
   const config = scheme.__config__
-  const unitNum = units[config.sizeUnit]; let rightSizeCode = ''; let acceptCode = ''; const
+  const unitNum = units[config.sizeUnit];
+  let rightSizeCode = '';
+  let acceptCode = '';
+  const
     returnList = []
   if (config.fileSize) {
     rightSizeCode = `let isRightSize = file.size / ${unitNum} < ${config.fileSize}
@@ -224,7 +273,7 @@ function buildSubmitUpload(scheme) {
 }
 
 function buildOptionMethod(methodName, model, methodList, scheme) {
-  const config = scheme.__config__
+  const config = scheme.__config__; //取出表单配置项
   const str = `${methodName}() {
     // 注意：this.$axios是通过Vue.prototype.$axios = axios挂载产生的
     this.$axios({
@@ -235,11 +284,28 @@ function buildOptionMethod(methodName, model, methodList, scheme) {
       this.${model} = data.${config.dataPath}
     })
   },`
-  methodList.push(str)
+  methodList.push(str); //往已有的方法里添加
+}
+//定义分页组件的事件
+function buildPaginationMethod(methodNameList, methodList, scheme) {
+  const config = scheme.__config__; //取出表单配置项
+  //改变页码事件
+  const str1 = `${methodNameList[0]}(val) {
+    this['${config.forData.pageKey}'] = val;
+    this.getTableData();
+  },`
+  methodList.push(str1); //往已有的方法里添加
+  //改变条数事件
+  const str2 = `${methodNameList[1]}(val) {
+    this['${config.forData.rowsKey}'] = val;
+    this.getTableData();
+  },`
+  methodList.push(str2); //往已有的方法里添加
+
 }
 
 // js整体拼接
-function buildexport(conf, type, data, rules, selectOptions, uploadVar, props, methods, created) {
+function buildexport(conf, type, formData, commonDataList, rules, selectOptions, uploadVar, props, methods, created) {
   const str = `${exportDefault}{
   ${inheritAttrs[type]}
   components: {},
@@ -247,7 +313,7 @@ function buildexport(conf, type, data, rules, selectOptions, uploadVar, props, m
   data () {
     return {
       ${conf.formModel}: {
-        ${data}
+        ${formData}
       },
       ${conf.formRules}: {
         ${rules}
@@ -255,6 +321,7 @@ function buildexport(conf, type, data, rules, selectOptions, uploadVar, props, m
       ${uploadVar}
       ${selectOptions}
       ${props}
+      ${commonDataList}
     }
   },
   computed: {},

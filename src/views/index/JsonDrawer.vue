@@ -2,10 +2,11 @@
   <div>
     <el-drawer v-bind="$attrs" v-on="$listeners" @opened="onOpen" @close="onClose">
       <div class="action-bar" :style="{'text-align': 'left'}">
-        <span class="bar-btn" @click="refresh">
+        <!-- 刷新感觉没啥用 -->
+        <!-- <span class="bar-btn" @click="refresh">
           <i class="el-icon-refresh" />
           刷新
-        </span>
+        </span>-->
         <span ref="copyBtn" class="bar-btn copy-json-btn">
           <i class="el-icon-document-copy" />
           复制JSON
@@ -25,14 +26,14 @@
 </template>
 
 <script>
-import { beautifierConf } from '@/utils/index'
-import ClipboardJS from 'clipboard'
-import { saveAs } from 'file-saver'
-import loadMonaco from '@/utils/loadMonaco'
-import loadBeautifier from '@/utils/loadBeautifier'
+import { beautifierConf } from "@/utils/index"; //加载代码美化格式
+import ClipboardJS from "clipboard";
+import { saveAs } from "file-saver";
+import loadMonaco from "@/utils/loadMonaco"; //加载编辑器
+import loadBeautifier from "@/utils/loadBeautifier"; //加载“代码美化脚本”
 
-let beautifier
-let monaco
+let beautifier;
+let monaco;
 
 export default {
   components: {},
@@ -43,102 +44,107 @@ export default {
     }
   },
   data() {
-    return {}
+    return {};
   },
   computed: {},
   watch: {},
   created() {},
   mounted() {
-    window.addEventListener('keydown', this.preventDefaultSave)
-    const clipboard = new ClipboardJS('.copy-json-btn', {
+    window.addEventListener("keydown", this.preventDefaultSave);
+    //代码
+    const clipboard = new ClipboardJS(".copy-json-btn", {
       text: trigger => {
         this.$notify({
-          title: '成功',
-          message: '代码已复制到剪切板，可粘贴。',
-          type: 'success'
-        })
-        return this.beautifierJson
+          title: "成功",
+          message: "代码已复制到剪切板，可粘贴。",
+          type: "success"
+        });
+        return this.beautifierJson; //直接返回美化后的json
       }
-    })
-    clipboard.on('error', e => {
-      this.$message.error('代码复制失败')
-    })
+    });
+    clipboard.on("error", e => {
+      this.$message.error("代码复制失败");
+    });
   },
   beforeDestroy() {
-    window.removeEventListener('keydown', this.preventDefaultSave)
+    window.removeEventListener("keydown", this.preventDefaultSave);
   },
   methods: {
     preventDefaultSave(e) {
-      if (e.key === 's' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
+      if (e.key === "s" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
       }
     },
     onOpen() {
       loadBeautifier(btf => {
-        beautifier = btf
-        this.beautifierJson = beautifier.js(this.jsonStr, beautifierConf.js)
-
+        beautifier = btf;
+        this.beautifierJson = beautifier.js(this.jsonStr, beautifierConf.js);
+        // console.log(JSON.parse(JSON.stringify(this.beautifierJson))); //美化好的json
         loadMonaco(val => {
-          monaco = val
-          this.setEditorValue('editorJson', this.beautifierJson)
-        })
-      })
+          monaco = val;
+          this.setEditorValue("editorJson", this.beautifierJson); //
+        });
+      });
     },
     onClose() {},
     setEditorValue(id, codeStr) {
       if (this.jsonEditor) {
-        this.jsonEditor.setValue(codeStr)
+        this.jsonEditor.setValue(codeStr);
       } else {
+        //把代码写入编辑器
         this.jsonEditor = monaco.editor.create(document.getElementById(id), {
           value: codeStr,
-          theme: 'vs-dark',
-          language: 'json',
+          theme: "vs-dark",
+          language: "json",
           automaticLayout: true
-        })
+        });
+        // console.log(this.jsonEditor);//编辑器实例
         // ctrl + s 刷新
+        //编辑器监听事件
         this.jsonEditor.onKeyDown(e => {
           if (e.keyCode === 49 && (e.metaKey || e.ctrlKey)) {
-            this.refresh()
+            this.refresh();
           }
-        })
+        });
       }
     },
     exportJsonFile() {
-      this.$prompt('文件名:', '导出文件', {
+      //弹出确认框
+      this.$prompt("文件名:", "导出文件", {
         inputValue: `${+new Date()}.json`,
         closeOnClickModal: false,
-        inputPlaceholder: '请输入文件名'
+        inputPlaceholder: "请输入文件名"
       }).then(({ value }) => {
-        if (!value) value = `${+new Date()}.json`
-        const codeStr = this.jsonEditor.getValue()
-        const blob = new Blob([codeStr], { type: 'text/plain;charset=utf-8' })
-        saveAs(blob, value)
-      })
+        if (!value) value = `${+new Date()}.json`;
+        const codeStr = this.jsonEditor.getValue();
+        const blob = new Blob([codeStr], { type: "text/plain;charset=utf-8" });
+        saveAs(blob, value);
+      });
     },
     refresh() {
       try {
-        this.$emit('refresh', JSON.parse(this.jsonEditor.getValue()))
+        this.$emit("refresh", JSON.parse(this.jsonEditor.getValue())); //
       } catch (error) {
         this.$notify({
-          title: '错误',
-          message: 'JSON格式错误，请检查',
-          type: 'error'
-        })
+          title: "错误",
+          message: "JSON格式错误，请检查",
+          type: "error"
+        });
       }
     }
   }
-}
+};
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/mixin.scss';
+@import "@/styles/mixin.scss";
 
 ::v-deep .el-drawer__header {
   display: none;
 }
 @include action-bar;
 
-.json-editor{
+.json-editor {
   height: calc(100vh - 33px);
 }
 </style>

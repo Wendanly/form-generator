@@ -4,11 +4,13 @@
       <div style="height:100%">
         <el-row style="height:100%;overflow:auto">
           <el-col :md="24" :lg="12" class="left-editor">
+            <!-- 设置按钮 -->
             <div class="setting" title="资源引用" @click="showResource">
               <el-badge :is-dot="!!resources.length" class="item">
                 <i class="el-icon-setting" />
               </el-badge>
             </div>
+            <!-- tab页切换 -->
             <el-tabs v-model="activeTab" type="card" class="editor-tabs">
               <el-tab-pane name="html">
                 <span slot="label">
@@ -76,42 +78,47 @@
   </div>
 </template>
 <script>
-import { parse } from '@babel/parser'
-import ClipboardJS from 'clipboard'
-import { saveAs } from 'file-saver'
+import { parse } from "@babel/parser";
+import ClipboardJS from "clipboard";
+import { saveAs } from "file-saver";
 import {
-  makeUpHtml, vueTemplate, vueScript, cssStyle
-} from '@/components/generator/html'
-import { makeUpJs } from '@/components/generator/js'
-import { makeUpCss } from '@/components/generator/css'
-import { exportDefault, beautifierConf, titleCase } from '@/utils/index'
-import ResourceDialog from './ResourceDialog'
-import loadMonaco from '@/utils/loadMonaco'
-import loadBeautifier from '@/utils/loadBeautifier'
+  makeUpHtml, //最终生成的template，重点
+  vueTemplate,
+  vueScript,
+  cssStyle
+} from "@/components/generator/html";
+import { makeUpJs } from "@/components/generator/js"; //最终生成的js ，重点
+import { makeUpCss } from "@/components/generator/css"; //最终生成的css ，重点
+import { exportDefault, beautifierConf, titleCase } from "@/utils/index";
+import ResourceDialog from "./ResourceDialog"; //外部资源对话框
+import loadMonaco from "@/utils/loadMonaco"; //加载编辑区主题风格
+import loadBeautifier from "@/utils/loadBeautifier"; //美化代码
 
+//储存代码
 const editorObj = {
   html: null,
   js: null,
   css: null
-}
+};
+//代码类型
 const mode = {
-  html: 'html',
-  js: 'javascript',
-  css: 'css'
-}
-let beautifier
-let monaco
+  html: "html",
+  js: "javascript",
+  css: "css"
+};
+let beautifier;
+let monaco;
 
 export default {
   components: { ResourceDialog },
-  props: ['formData', 'generateConf'],
+  props: ["formData", "generateConf"],
   data() {
     return {
-      activeTab: 'html',
-      htmlCode: '',
-      jsCode: '',
-      cssCode: '',
-      codeFrame: '',
+      activeTab: "html",
+      htmlCode: "",
+      jsCode: "",
+      cssCode: "",
+      codeFrame: "",
       isIframeLoaded: false,
       isInitcode: false, // 保证open后两个异步只执行一次runcode
       isRefreshCode: false, // 每次打开都需要重新刷新代码
@@ -119,179 +126,190 @@ export default {
       scripts: [],
       links: [],
       monaco: null
-    }
+    };
   },
   computed: {
     resources() {
-      return this.scripts.concat(this.links)
+      return this.scripts.concat(this.links);
     }
   },
   watch: {},
-  created() {
-  },
+  created() {},
   mounted() {
-    window.addEventListener('keydown', this.preventDefaultSave)
-    const clipboard = new ClipboardJS('.copy-btn', {
+    window.addEventListener("keydown", this.preventDefaultSave);
+    //一下代码的意思是点击 “复制代码”时触发trigger 方法
+    const clipboard = new ClipboardJS(".copy-btn", {
       text: trigger => {
-        const codeStr = this.generateCode()
+        const codeStr = this.generateCode();
         this.$notify({
-          title: '成功',
-          message: '代码已复制到剪切板，可粘贴。',
-          type: 'success'
-        })
-        return codeStr
+          title: "成功",
+          message: "代码已复制到剪切板，可粘贴。",
+          type: "success"
+        });
+        return codeStr;
       }
-    })
-    clipboard.on('error', e => {
-      this.$message.error('代码复制失败')
-    })
+    });
+    clipboard.on("error", e => {
+      this.$message.error("代码复制失败");
+    });
   },
   beforeDestroy() {
-    window.removeEventListener('keydown', this.preventDefaultSave)
+    window.removeEventListener("keydown", this.preventDefaultSave);
   },
   methods: {
     preventDefaultSave(e) {
-      if (e.key === 's' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
+      if (e.key === "s" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
       }
     },
     onOpen() {
-      const { type } = this.generateConf
-      this.htmlCode = makeUpHtml(this.formData, type)
-      this.jsCode = makeUpJs(this.formData, type)
-      this.cssCode = makeUpCss(this.formData)
-
+      const { type } = this.generateConf; //页面还是弹窗
+      this.htmlCode = makeUpHtml(this.formData, type);
+      this.jsCode = makeUpJs(this.formData, type);
+      this.cssCode = makeUpCss(this.formData);
+      console.log(this.htmlCode);
+      console.log(this.jsCode);
+      console.log(this.cssCode);
+      let _this = this;
+      //美化代码
       loadBeautifier(btf => {
-        beautifier = btf
-        this.htmlCode = beautifier.html(this.htmlCode, beautifierConf.html)
-        this.jsCode = beautifier.js(this.jsCode, beautifierConf.js)
-        this.cssCode = beautifier.css(this.cssCode, beautifierConf.html)
-
+        beautifier = btf;
+        _this.htmlCode = beautifier.html(_this.htmlCode, beautifierConf.html);
+        _this.jsCode = beautifier.js(_this.jsCode, beautifierConf.js);
+        _this.cssCode = beautifier.css(_this.cssCode, beautifierConf.html);
+        //把代码写入编辑区
         loadMonaco(val => {
-          monaco = val
-          this.setEditorValue('editorHtml', 'html', this.htmlCode)
-          this.setEditorValue('editorJs', 'js', this.jsCode)
-          this.setEditorValue('editorCss', 'css', this.cssCode)
-          if (!this.isInitcode) {
-            this.isRefreshCode = true
-            this.isIframeLoaded && (this.isInitcode = true) && this.runCode()
+          monaco = val;
+          _this.setEditorValue("editorHtml", "html", _this.htmlCode); //把美化好的代码写入对应的编辑区里
+          _this.setEditorValue("editorJs", "js", _this.jsCode); //把美化好的代码写入对应的编辑区里
+          _this.setEditorValue("editorCss", "css", _this.cssCode); //把美化好的代码写入对应的编辑区里
+          if (!_this.isInitcode) {
+            _this.isRefreshCode = true;
+            _this.isIframeLoaded &&
+              (_this.isInitcode = true) &&
+              _this.runCode();
           }
-        })
-      })
+        });
+      });
     },
     onClose() {
-      this.isInitcode = false
-      this.isRefreshCode = false
+      this.isInitcode = false;
+      this.isRefreshCode = false;
     },
     iframeLoad() {
       if (!this.isInitcode) {
-        this.isIframeLoaded = true
-        this.isRefreshCode && (this.isInitcode = true) && this.runCode()
+        this.isIframeLoaded = true;
+        this.isRefreshCode && (this.isInitcode = true) && this.runCode();
       }
     },
+    //左侧编辑区
     setEditorValue(id, type, codeStr) {
+      //如果已经加载过，则直接回显到编辑区
       if (editorObj[type]) {
-        editorObj[type].setValue(codeStr)
+        editorObj[type].setValue(codeStr);
       } else {
+        //如果没有加载过，则需要重新加载
         editorObj[type] = monaco.editor.create(document.getElementById(id), {
-          value: codeStr,
-          theme: 'vs-dark',
-          language: mode[type],
+          value: codeStr, //对应的代码
+          theme: "vs-dark",
+          language: mode[type], //对应的代码类型
           automaticLayout: true
-        })
+        });
       }
       // ctrl + s 刷新
+      //在编辑区实例上绑定事件
       editorObj[type].onKeyDown(e => {
         if (e.keyCode === 49 && (e.metaKey || e.ctrlKey)) {
-          this.runCode()
+          this.runCode();
         }
-      })
+      });
     },
     runCode() {
-      const jsCodeStr = editorObj.js.getValue()
+      const jsCodeStr = editorObj.js.getValue(); //刷新时取出js代码，判断代码格式是否正确
       try {
-        const ast = parse(jsCodeStr, { sourceType: 'module' })
-        const astBody = ast.program.body
+        const ast = parse(jsCodeStr, { sourceType: "module" });
+        const astBody = ast.program.body;
         if (astBody.length > 1) {
           this.$confirm(
-            'js格式不能识别，仅支持修改export default的对象内容',
-            '提示',
+            "js格式不能识别，仅支持修改export default的对象内容",
+            "提示",
             {
-              type: 'warning'
+              type: "warning"
             }
-          )
-          return
+          );
+          return;
         }
-        if (astBody[0].type === 'ExportDefaultDeclaration') {
+        if (astBody[0].type === "ExportDefaultDeclaration") {
           const postData = {
-            type: 'refreshFrame',
+            type: "refreshFrame",
             data: {
               generateConf: this.generateConf,
               html: editorObj.html.getValue(),
-              js: jsCodeStr.replace(exportDefault, ''),
+              js: jsCodeStr.replace(exportDefault, ""),
               css: editorObj.css.getValue(),
               scripts: this.scripts,
               links: this.links
             }
-          }
+          };
 
           this.$refs.previewPage.contentWindow.postMessage(
             postData,
             location.origin
-          )
+          );
         } else {
-          this.$message.error('请使用export default')
+          this.$message.error("请使用export default");
         }
       } catch (err) {
-        this.$message.error(`js错误：${err}`)
-        console.error(err)
+        this.$message.error(`js错误：${err}`);
+        console.error(err);
       }
     },
+    //获取美化后的代码
     generateCode() {
-      const html = vueTemplate(editorObj.html.getValue())
-      const script = vueScript(editorObj.js.getValue())
-      const css = cssStyle(editorObj.css.getValue())
-      return beautifier.html(html + script + css, beautifierConf.html)
+      const html = vueTemplate(editorObj.html.getValue());
+      const script = vueScript(editorObj.js.getValue());
+      const css = cssStyle(editorObj.css.getValue());
+      return beautifier.html(html + script + css, beautifierConf.html); //把三种类型的代码合在一起美化，输出是完整的美化好的vue格式得到代码，可以直接生成文件
     },
     exportFile() {
-      this.$prompt('文件名:', '导出文件', {
+      this.$prompt("文件名:", "导出文件", {
         inputValue: `${+new Date()}.vue`,
         closeOnClickModal: false,
-        inputPlaceholder: '请输入文件名'
+        inputPlaceholder: "请输入文件名"
       }).then(({ value }) => {
-        if (!value) value = `${+new Date()}.vue`
-        const codeStr = this.generateCode()
-        const blob = new Blob([codeStr], { type: 'text/plain;charset=utf-8' })
-        saveAs(blob, value)
-      })
+        if (!value) value = `${+new Date()}.vue`;
+        const codeStr = this.generateCode(); //美化好的代码
+        const blob = new Blob([codeStr], { type: "text/plain;charset=utf-8" });
+        saveAs(blob, value);
+      });
     },
     showResource() {
-      this.resourceVisible = true
+      this.resourceVisible = true;
     },
     setResource(arr) {
-      const scripts = []; const
-        links = []
+      const scripts = [];
+      const links = [];
       if (Array.isArray(arr)) {
         arr.forEach(item => {
-          if (item.endsWith('.css')) {
-            links.push(item)
+          if (item.endsWith(".css")) {
+            links.push(item);
           } else {
-            scripts.push(item)
+            scripts.push(item);
           }
-        })
-        this.scripts = scripts
-        this.links = links
+        });
+        this.scripts = scripts;
+        this.links = links;
       } else {
-        this.scripts = []
-        this.links = []
+        this.scripts = [];
+        this.links = [];
       }
     }
   }
-}
+};
 </script>
 
 <style lang="scss" scoped>
-@import '@/styles/mixin.scss';
+@import "@/styles/mixin.scss";
 .tab-editor {
   position: absolute;
   top: 33px;
@@ -306,7 +324,7 @@ export default {
   background: #1e1e1e;
   overflow: hidden;
 }
-.setting{
+.setting {
   position: absolute;
   right: 15px;
   top: 3px;

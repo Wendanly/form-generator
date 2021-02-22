@@ -94,19 +94,22 @@
       @tag-change="tagChange"
       @fetch-data="fetchData"
     />
-
+    <!-- 运行 -->
     <form-drawer
       :visible.sync="drawerVisible"
       :form-data="formData"
       size="100%"
       :generate-conf="generateConf"
     />
+    <!-- 查看json -->
     <json-drawer
       size="60%"
       :visible.sync="jsonDrawerVisible"
       :json-str="JSON.stringify(formData)"
       @refresh="refreshJson"
     />
+    <!-- 点击运行、导出文件都会弹出这个选择框 -->
+    <!-- 生成类型弹出框 -->
     <code-type-dialog
       :visible.sync="dialogVisible"
       title="选择生成类型"
@@ -122,7 +125,7 @@ import draggable from "vuedraggable";
 import { debounce } from "throttle-debounce"; //去抖动函数
 import { saveAs } from "file-saver";
 import ClipboardJS from "clipboard";
-import render from "@/components/render/render";
+// import render from "@/components/render/render";
 import FormDrawer from "./FormDrawer";
 import JsonDrawer from "./JsonDrawer";
 import RightPanel from "./RightPanel";
@@ -153,7 +156,7 @@ import drawingDefalut from "@/components/generator/drawingDefalut"; //初始化�
 import logo from "@/assets/logo.png";
 import CodeTypeDialog from "./CodeTypeDialog";
 import DraggableItem from "./DraggableItem";
-//本地储存
+//本地储存，供刷新初始化使用，刷新时优先从这里获取数据进行初始化，若没有数据则从本地文件中获取
 import {
   getDrawingList,
   saveDrawingList,
@@ -174,7 +177,7 @@ const idGlobal = getIdGlobal(); //获取本地存储获取右侧组件索引
 export default {
   components: {
     draggable,
-    render,
+    // render,
     FormDrawer,
     JsonDrawer,
     RightPanel,
@@ -193,12 +196,12 @@ export default {
       drawingList: drawingDefalut, //初始化右侧组件
       drawingData: {},
       activeId: drawingDefalut[0].formId, //初始化组件索引
-      drawerVisible: false,
-      formData: {},
+      drawerVisible: false, //打开‘运行’的模态框
+      formData: {}, //组件属性与表单属性的合并
       dialogVisible: false,
-      jsonDrawerVisible: false,
-      generateConf: null,
-      showFileName: false,
+      jsonDrawerVisible: false, //查看json 模态框显隐
+      generateConf: null, //选择页面或者弹窗的模态框里的配置项
+      showFileName: false, //控制选择页面或者弹窗的模态框里是否有文件名
       activeData: drawingDefalut[0], //初始化右侧组件高亮组件,默认选中第一个
       saveDrawingListDebounce: debounce(340, saveDrawingList), //去抖动,获取本地已有的组件list
       saveIdGlobalDebounce: debounce(340, saveIdGlobal), //去抖动,储存本地当前组件索引
@@ -220,10 +223,12 @@ export default {
   },
   computed: {},
   watch: {
-    
-    // eslint-disable-next-line func-names
+    // 如果activeData.__config__.label 与activeId 连续被更改，则他们在watch里的响应是按照他们在watch里的排序来的，而不是按照他们被更改时的顺序确定的
+    //activeData对象内容改变，label会被触发，但此时不能改变placeholder的值，因为此时没有在右侧配置面版中改变label的值,所以要加判断过滤掉此种情况
+    // 实时改变placeholder的值
     "activeData.__config__.label"(val, oldVal) {
       console.log(val);
+      //因为左侧点击元素、拖动或者点击右侧组件都会先触发activeData.__config__.label，而此时oldActiveId还是老的值，所以此时下面的判断为假；当在右侧配置面版中改变label时则下面的判断则为真，因为此时oldActiveId 已经更新了
       if (
         this.activeData.placeholder === undefined ||
         !this.activeData.__config__.tag ||
@@ -236,6 +241,7 @@ export default {
     },
     activeId: {
       handler(val) {
+        //存下老值为了给"activeData.__config__.label" 监听做判断
         oldActiveId = val;
       },
       immediate: true
@@ -265,8 +271,9 @@ export default {
       this.formConf = formConfInDB;
     }
     this.activeFormItem(this.drawingList[0]); //初始化或者刷新页面时使第一个高亮
+    //加载美化工具
     loadBeautifier(btf => {
-      beautifier = btf;//beautifier里有三个方法
+      beautifier = btf; //beautifier里有三个方法
     });
     const clipboard = new ClipboardJS("#copyNode", {
       text: trigger => {
@@ -339,14 +346,16 @@ export default {
       }
     },
     //使当前组件在右侧高亮（高亮也叫"被选中"，其效果为：有边框且显示复制与删除按钮）
+    //左侧点击元素、拖动或者点击右侧组件 都会触发此方法
     activeFormItem(currentItem) {
+      console.log(currentItem);
       this.activeData = currentItem; //存下当前元素配置项
       this.activeId = currentItem.__config__.formId; //存下当前元素的formId
     },
-    //此方法只有在左侧往右侧拖动完成时触发
+    //此方法只有在左侧往右侧拖动完成时触发,因为此方法只绑定在左侧
     onEnd(obj) {
       console.log(obj);
-      //此判断是
+      //此判断是过滤左侧内部元素之间的拖动
       if (obj.from !== obj.to) {
         this.fetchData(tempActiveData);
         //下面两句话可能要优化去掉
@@ -378,13 +387,14 @@ export default {
       config.formId = ++this.idGlobal; //表单ID，自增
       config.renderKey = `${config.formId}${+new Date()}`; // 改变renderKey后可以实现强制更新组件
       console.log(config.renderKey);
-      //组件配置项分为两种，元素与容器，元素的layout为colFormItem，容器的layout为rowFormItem
-      if (config.layout === "colFormItem") {
+      //组件配置项分为两种，元素与容器，元素的layout为colFormItem，容器的layout为rowFormItemWrap
+      if (config.layout === "colFormItem" && config.showLabel != undefined) {
         item.__vModel__ = `field${this.idGlobal}`;
-      } else if (config.layout === "rowFormItem") {
+      } else if (config.layout === "rowFormItemWrap") {
+        //行容器就是个盒子
         config.componentName = `row${this.idGlobal}`;
         !Array.isArray(config.children) && (config.children = []); //判断是否有children 字段，有则通过，无则添加次字段并赋值空数组
-        delete config.label; // rowFormItem无需配置label属性
+        delete config.label; // rowFormItemWrap无需配置label属性
       }
       //如果children不为空 ，则为其每一个子元素都设置 id与key
       if (Array.isArray(config.children)) {
@@ -394,6 +404,7 @@ export default {
       }
       return item;
     },
+    //合并参数
     AssembleFormData() {
       this.formData = {
         fields: deepClone(this.drawingList),
@@ -401,8 +412,9 @@ export default {
       };
     },
     generate(data) {
+      console.log(data);
       const func = this[`exec${titleCase(this.operationType)}`];
-      this.generateConf = data;
+      this.generateConf = data; //页面 or 弹窗
       func && func(data);
     },
     execRun(data) {
@@ -442,6 +454,7 @@ export default {
       });
     },
     generateCode() {
+      console.log(this.generateConf);
       const { type } = this.generateConf;
       this.AssembleFormData();
       const script = vueScript(makeUpJs(this.formData, type));
@@ -449,6 +462,7 @@ export default {
       const css = cssStyle(makeUpCss(this.formData));
       return beautifier.html(html + script + css, beautifierConf.html);
     },
+    //查看json
     showJson() {
       this.AssembleFormData();
       this.jsonDrawerVisible = true;
@@ -458,6 +472,7 @@ export default {
       this.showFileName = true;
       this.operationType = "download";
     },
+    // 运行的点击按钮
     run() {
       this.dialogVisible = true;
       this.showFileName = false;
@@ -468,35 +483,37 @@ export default {
       this.showFileName = false;
       this.operationType = "copy";
     },
+    // 右侧面板切换组件类型
     tagChange(newTag) {
       newTag = this.cloneComponent(newTag);
       const config = newTag.__config__;
-      newTag.__vModel__ = this.activeData.__vModel__;
-      config.formId = this.activeId;
-      config.span = this.activeData.__config__.span;
-      this.activeData.__config__.tag = config.tag;
-      this.activeData.__config__.tagIcon = config.tagIcon;
-      this.activeData.__config__.document = config.document;
+      newTag.__vModel__ = this.activeData.__vModel__; //只有layout === "colFormItem"才会有__vModel__ ，所以切换组件时不用改变此值
+      config.formId = this.activeId; //不需要变动
+      config.span = this.activeData.__config__.span; //不需要变动
+      this.activeData.__config__.tag = config.tag; //需要变动
+      this.activeData.__config__.tagIcon = config.tagIcon; //需要变动
+      this.activeData.__config__.document = config.document; //需要变动
       if (
         typeof this.activeData.__config__.defaultValue ===
         typeof config.defaultValue
       ) {
-        config.defaultValue = this.activeData.__config__.defaultValue;
+        config.defaultValue = this.activeData.__config__.defaultValue; //不需要变动
       }
       Object.keys(newTag).forEach(key => {
         if (this.activeData[key] !== undefined) {
-          newTag[key] = this.activeData[key];
+          newTag[key] = this.activeData[key]; //这边直接覆盖会有点问题，因为有的字段还是沿用之前的值
         }
       });
+      console.log(JSON.parse(JSON.stringify(this.activeData)));
       this.activeData = newTag;
       this.updateDrawingList(newTag, this.drawingList);
     },
     updateDrawingList(newTag, list) {
       const index = list.findIndex(
-        item => item.__config__.formId === this.activeId
+        item => item.__config__.formId === this.activeId // 通过id找
       );
       if (index > -1) {
-        list.splice(index, 1, newTag);
+        list.splice(index, 1, newTag); //更新，会驱动drawingList 重新渲染
       } else {
         list.forEach(item => {
           if (Array.isArray(item.__config__.children))

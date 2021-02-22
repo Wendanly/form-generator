@@ -33,7 +33,7 @@ export function cssStyle(cssStr) {
     ${cssStr}
   </style>`
 }
-
+//在formItem的外面套一层form
 function buildFormTemplate(scheme, child, type) {
   let labelPosition = ''
   if (scheme.labelPosition !== 'right') {
@@ -51,9 +51,9 @@ function buildFormTemplate(scheme, child, type) {
   }
   return str
 }
-
+//按页面类型判断是否需要在页面的下方加按钮
 function buildFromBtns(scheme, type) {
-  let str = ''
+  let str = '';
   if (scheme.formBtns && type === 'file') {
     str = `<el-form-item size="large">
           <el-button type="primary" @click="submitForm">提交</el-button>
@@ -80,22 +80,23 @@ function colWrapper(scheme, str) {
 
 const layouts = {
   colFormItem(scheme) {
+    //拼装formItem
     const config = scheme.__config__
     let labelWidth = ''
-    let label = `label="${config.label}"`
+    let label = `label="${config.label}"`; //
     if (config.labelWidth && config.labelWidth !== confGlobal.labelWidth) {
-      labelWidth = `label-width="${config.labelWidth}px"`
+      labelWidth = `label-width="${config.labelWidth}px"` //
     }
-    if (config.showLabel === false) {
-      labelWidth = 'label-width="0"'
+    if (config.showLabel === false || config.showLabel == undefined) {
+      labelWidth = 'label-width="0"'; //
       label = ''
     }
-    const required = !ruleTrigger[config.tag] && config.required ? 'required' : ''
+    const required = !ruleTrigger[config.tag] && config.required ? 'required' : '';
     const tagDom = tags[config.tag] ? tags[config.tag](scheme) : null
-    let str = `<el-form-item ${labelWidth} ${label} prop="${scheme.__vModel__}" ${required}>
+    let str = `<el-form-item ${labelWidth} ${label}  prop="${scheme.__vModel__}" ${required}>
         ${tagDom}
       </el-form-item>`
-    str = colWrapper(scheme, str)
+    str = colWrapper(scheme, str);
     return str
   },
   rowFormItem(scheme) {
@@ -116,12 +117,13 @@ const layouts = {
 const tags = {
   'el-button': el => {
     const {
-      tag, disabled
+      tag,
+      disabled,
+      size
     } = attrBuilder(el)
     const type = el.type ? `type="${el.type}"` : ''
     const icon = el.icon ? `icon="${el.icon}"` : ''
     const round = el.round ? 'round' : ''
-    const size = el.size ? `size="${el.size}"` : ''
     const plain = el.plain ? 'plain' : ''
     const circle = el.circle ? 'circle' : ''
     let child = buildElButtonChild(el)
@@ -131,8 +133,15 @@ const tags = {
   },
   'el-input': el => {
     const {
-      tag, disabled, vModel, clearable, placeholder, width
-    } = attrBuilder(el)
+      tag,
+      disabled,
+      vModel,
+      clearable,
+      placeholder,
+      width,
+      size
+    } = attrBuilder(el);
+    //以下是特有的属性
     const maxlength = el.maxlength ? `:maxlength="${el.maxlength}"` : ''
     const showWordLimit = el['show-word-limit'] ? 'show-word-limit' : ''
     const readonly = el.readonly ? 'readonly' : ''
@@ -140,17 +149,74 @@ const tags = {
     const suffixIcon = el['suffix-icon'] ? `suffix-icon='${el['suffix-icon']}'` : ''
     const showPassword = el['show-password'] ? 'show-password' : ''
     const type = el.type ? `type="${el.type}"` : ''
-    const autosize = el.autosize && el.autosize.minRows
-      ? `:autosize="{minRows: ${el.autosize.minRows}, maxRows: ${el.autosize.maxRows}}"`
-      : ''
-    let child = buildElInputChild(el)
+    const autosize = el.autosize && el.autosize.minRows ?
+      `:autosize="{minRows: ${el.autosize.minRows}, maxRows: ${el.autosize.maxRows}}"` :
+      '';
+    let child = buildElInputChild(el); //获取插槽内容
 
     if (child) child = `\n${child}\n` // 换行
-    return `<${tag} ${vModel} ${type} ${placeholder} ${maxlength} ${showWordLimit} ${readonly} ${disabled} ${clearable} ${prefixIcon} ${suffixIcon} ${showPassword} ${autosize} ${width}>${child}</${tag}>`
+    return `<${tag} ${vModel} ${type} ${placeholder} ${size} ${maxlength} ${showWordLimit} ${readonly} ${disabled} ${clearable} ${prefixIcon} ${suffixIcon} ${showPassword} ${autosize} ${width}>${child}</${tag}>`
+  },
+  'el-pagination': el => {
+    const {
+      tag,
+    } = attrBuilder(el);
+    //以下是特有的属性
+    const pagerCount = el['pager-count'] ? `:pager-count=${el['pager-count']}` : 0;
+    const small = el['small'] ? `small` : '';
+    const background = el['background'] ? `background` : '';
+    const total = 'total' in el ? `:total='${el.__config__.forData.totalKey}'` : 0;
+    const currentPage = el['current-page'] ? `:current-page='${el.__config__.forData.pageKey}'` : 1;
+    const pageSize = el['page-size'] ? `:page-size='${el.__config__.forData.rowsKey}'` : 10;
+    const layout = el['layout'] ? `layout='sizes, prev, pager, next, jumper'` : '';
+    //构建事件
+    const sizeChange = el.__config__.eventName['sizeChange'] ? `@size-change="${el.__config__.eventName.sizeChangeName}('fromCondition')"` : '';
+    const currentChange = el.__config__.eventName['currentChange'] ? `@current-change="${el.__config__.eventName.currentChangeName}('fromCondition')"` : '';
+    return `<${tag} ${pagerCount} ${small}  ${layout} ${background} ${total} ${currentPage} ${pageSize} ${sizeChange} ${currentChange}></${tag}>`
+  },
+  // 表格
+  'el-table': el => {
+    const {
+      tag,
+    } = attrBuilder(el);
+    //以下是特有的属性
+    const loading = 'v-loading' in el ? `v-loading='${el['v-loading']}'` : '';
+    const style = 'style' in el ? `style='${el['style']}'` : '';
+    const border = 'border' in el ? 'border' : '';
+    const ref = 'ref' in el ? `ref=${el['ref']}` : '';
+    const data = 'data' in el ? `:data= "${confGlobal.formModel}.${el['tableData']}"` : [];
+    //构建事件
+    const sizeChange = el.__config__.eventName['sizeChange'] ? `@size-change="${el.__config__.eventName.sizeChangeName}('fromCondition')"` : '';
+    const currentChange = el.__config__.eventName['currentChange'] ? `@current-change="${el.__config__.eventName.currentChangeName}('fromCondition')"` : '';
+    console.log(data);
+    return `
+  <${tag} ${loading} ${data} ${style} ${ref} ${border}>
+  
+  <el-table-column
+  :prop="item.prop"
+  :label="item.label"
+  :width="item.width"
+  :show-overflow-tooltip="true"
+  v-for='(item,index) in ${el.__config__.children.substr(0,el.__config__.children.length - 2)}' :key='index'
+></el-table-column>
+<template v-if='${item.label == "操作"}'>
+
+</template>
+
+  
+ </${tag}>
+  `;
+
+
+
   },
   'el-input-number': el => {
     const {
-      tag, disabled, vModel, placeholder
+      tag,
+      disabled,
+      vModel,
+      placeholder,
+      size
     } = attrBuilder(el)
     const controlsPosition = el['controls-position'] ? `controls-position=${el['controls-position']}` : ''
     const min = el.min ? `:min='${el.min}'` : ''
@@ -159,30 +225,44 @@ const tags = {
     const stepStrictly = el['step-strictly'] ? 'step-strictly' : ''
     const precision = el.precision ? `:precision='${el.precision}'` : ''
 
-    return `<${tag} ${vModel} ${placeholder} ${step} ${stepStrictly} ${precision} ${controlsPosition} ${min} ${max} ${disabled}></${tag}>`
+    return `<${tag} ${vModel} ${placeholder}  ${size} ${step} ${stepStrictly} ${precision} ${controlsPosition} ${min} ${max} ${disabled}></${tag}>`
   },
   'el-select': el => {
     const {
-      tag, disabled, vModel, clearable, placeholder, width
+      tag,
+      disabled,
+      vModel,
+      clearable,
+      placeholder,
+      width,
+      size
     } = attrBuilder(el)
     const filterable = el.filterable ? 'filterable' : ''
     const multiple = el.multiple ? 'multiple' : ''
     let child = buildElSelectChild(el)
 
     if (child) child = `\n${child}\n` // 换行
-    return `<${tag} ${vModel} ${placeholder} ${disabled} ${multiple} ${filterable} ${clearable} ${width}>${child}</${tag}>`
+    return `<${tag} ${vModel} ${placeholder}   ${size} ${disabled} ${multiple} ${filterable} ${clearable} ${width}>${child}</${tag}>`
   },
   'el-radio-group': el => {
-    const { tag, disabled, vModel } = attrBuilder(el)
-    const size = `size="${el.size}"`
+    const {
+      tag,
+      disabled,
+      vModel,
+      size
+    } = attrBuilder(el)
     let child = buildElRadioGroupChild(el)
 
     if (child) child = `\n${child}\n` // 换行
     return `<${tag} ${vModel} ${size} ${disabled}>${child}</${tag}>`
   },
   'el-checkbox-group': el => {
-    const { tag, disabled, vModel } = attrBuilder(el)
-    const size = `size="${el.size}"`
+    const {
+      tag,
+      disabled,
+      vModel,
+      size
+    } = attrBuilder(el)
     const min = el.min ? `:min="${el.min}"` : ''
     const max = el.max ? `:max="${el.max}"` : ''
     let child = buildElCheckboxGroupChild(el)
@@ -191,7 +271,11 @@ const tags = {
     return `<${tag} ${vModel} ${min} ${max} ${size} ${disabled}>${child}</${tag}>`
   },
   'el-switch': el => {
-    const { tag, disabled, vModel } = attrBuilder(el)
+    const {
+      tag,
+      disabled,
+      vModel
+    } = attrBuilder(el)
     const activeText = el['active-text'] ? `active-text="${el['active-text']}"` : ''
     const inactiveText = el['inactive-text'] ? `inactive-text="${el['inactive-text']}"` : ''
     const activeColor = el['active-color'] ? `active-color="${el['active-color']}"` : ''
@@ -203,7 +287,13 @@ const tags = {
   },
   'el-cascader': el => {
     const {
-      tag, disabled, vModel, clearable, placeholder, width
+      tag,
+      disabled,
+      vModel,
+      clearable,
+      placeholder,
+      width,
+      size
     } = attrBuilder(el)
     const options = el.options ? `:options="${el.__vModel__}Options"` : ''
     const props = el.props ? `:props="${el.__vModel__}Props"` : ''
@@ -211,10 +301,14 @@ const tags = {
     const filterable = el.filterable ? 'filterable' : ''
     const separator = el.separator === '/' ? '' : `separator="${el.separator}"`
 
-    return `<${tag} ${vModel} ${options} ${props} ${width} ${showAllLevels} ${placeholder} ${separator} ${filterable} ${clearable} ${disabled}></${tag}>`
+    return `<${tag} ${vModel} ${options}  ${size} ${props} ${width} ${showAllLevels} ${placeholder} ${separator} ${filterable} ${clearable} ${disabled}></${tag}>`
   },
   'el-slider': el => {
-    const { tag, disabled, vModel } = attrBuilder(el)
+    const {
+      tag,
+      disabled,
+      vModel
+    } = attrBuilder(el)
     const min = el.min ? `:min='${el.min}'` : ''
     const max = el.max ? `:max='${el.max}'` : ''
     const step = el.step ? `:step='${el.step}'` : ''
@@ -225,7 +319,13 @@ const tags = {
   },
   'el-time-picker': el => {
     const {
-      tag, disabled, vModel, clearable, placeholder, width
+      tag,
+      disabled,
+      vModel,
+      clearable,
+      placeholder,
+      width,
+      size
     } = attrBuilder(el)
     const startPlaceholder = el['start-placeholder'] ? `start-placeholder="${el['start-placeholder']}"` : ''
     const endPlaceholder = el['end-placeholder'] ? `end-placeholder="${el['end-placeholder']}"` : ''
@@ -235,11 +335,17 @@ const tags = {
     const valueFormat = el['value-format'] ? `value-format="${el['value-format']}"` : ''
     const pickerOptions = el['picker-options'] ? `:picker-options='${JSON.stringify(el['picker-options'])}'` : ''
 
-    return `<${tag} ${vModel} ${isRange} ${format} ${valueFormat} ${pickerOptions} ${width} ${placeholder} ${startPlaceholder} ${endPlaceholder} ${rangeSeparator} ${clearable} ${disabled}></${tag}>`
+    return `<${tag} ${vModel} ${isRange}  ${size} ${format} ${valueFormat} ${pickerOptions} ${width} ${placeholder} ${startPlaceholder} ${endPlaceholder} ${rangeSeparator} ${clearable} ${disabled}></${tag}>`
   },
   'el-date-picker': el => {
     const {
-      tag, disabled, vModel, clearable, placeholder, width
+      tag,
+      disabled,
+      vModel,
+      clearable,
+      placeholder,
+      width,
+      size
     } = attrBuilder(el)
     const startPlaceholder = el['start-placeholder'] ? `start-placeholder="${el['start-placeholder']}"` : ''
     const endPlaceholder = el['end-placeholder'] ? `end-placeholder="${el['end-placeholder']}"` : ''
@@ -249,10 +355,14 @@ const tags = {
     const type = el.type === 'date' ? '' : `type="${el.type}"`
     const readonly = el.readonly ? 'readonly' : ''
 
-    return `<${tag} ${type} ${vModel} ${format} ${valueFormat} ${width} ${placeholder} ${startPlaceholder} ${endPlaceholder} ${rangeSeparator} ${clearable} ${readonly} ${disabled}></${tag}>`
+    return `<${tag} ${type}  ${size} ${vModel} ${format} ${valueFormat} ${width} ${placeholder} ${startPlaceholder} ${endPlaceholder} ${rangeSeparator} ${clearable} ${readonly} ${disabled}></${tag}>`
   },
   'el-rate': el => {
-    const { tag, disabled, vModel } = attrBuilder(el)
+    const {
+      tag,
+      disabled,
+      vModel
+    } = attrBuilder(el)
     const max = el.max ? `:max='${el.max}'` : ''
     const allowHalf = el['allow-half'] ? 'allow-half' : ''
     const showText = el['show-text'] ? 'show-text' : ''
@@ -261,15 +371,21 @@ const tags = {
     return `<${tag} ${vModel} ${max} ${allowHalf} ${showText} ${showScore} ${disabled}></${tag}>`
   },
   'el-color-picker': el => {
-    const { tag, disabled, vModel } = attrBuilder(el)
-    const size = `size="${el.size}"`
+    const {
+      tag,
+      disabled,
+      vModel,
+      size
+    } = attrBuilder(el)
     const showAlpha = el['show-alpha'] ? 'show-alpha' : ''
     const colorFormat = el['color-format'] ? `color-format="${el['color-format']}"` : ''
 
     return `<${tag} ${vModel} ${size} ${showAlpha} ${colorFormat} ${disabled}></${tag}>`
   },
   'el-upload': el => {
-    const { tag } = el.__config__
+    const {
+      tag
+    } = el.__config__
     const disabled = el.disabled ? ':disabled=\'true\'' : ''
     const action = el.action ? `:action="${el.__vModel__}Action"` : ''
     const multiple = el.multiple ? 'multiple' : ''
@@ -286,25 +402,30 @@ const tags = {
     return `<${tag} ${ref} ${fileList} ${action} ${autoUpload} ${multiple} ${beforeUpload} ${listType} ${accept} ${name} ${disabled}>${child}</${tag}>`
   },
   tinymce: el => {
-    const { tag, vModel, placeholder } = attrBuilder(el)
+    const {
+      tag,
+      vModel,
+      placeholder
+    } = attrBuilder(el)
     const height = el.height ? `:height="${el.height}"` : ''
     const branding = el.branding ? `:branding="${el.branding}"` : ''
     return `<${tag} ${vModel} ${placeholder} ${height} ${branding}></${tag}>`
   }
 }
-
+//通用属性
 function attrBuilder(el) {
   return {
     tag: el.__config__.tag,
     vModel: `v-model="${confGlobal.formModel}.${el.__vModel__}"`,
     clearable: el.clearable ? 'clearable' : '',
+    size: el.size ? `size="${el.size}"` : '',
     placeholder: el.placeholder ? `placeholder="${el.placeholder}"` : '',
     width: el.style && el.style.width ? ':style="{width: \'100%\'}"' : '',
     disabled: el.disabled ? ':disabled=\'true\'' : ''
   }
 }
 
-// el-buttin 子级
+// el-button 子级
 function buildElButtonChild(scheme) {
   const children = []
   const slot = scheme.__slot__ || {}
@@ -379,6 +500,7 @@ function buildElUploadChild(scheme) {
  * @param {String} type 生成类型，文件或弹窗等
  */
 export function makeUpHtml(formConfig, type) {
+  console.log(formConfig);
   const htmlList = []
   confGlobal = formConfig
   // 判断布局是否都沾满了24个栅格，以备后续简化代码结构
@@ -387,7 +509,7 @@ export function makeUpHtml(formConfig, type) {
   formConfig.fields.forEach(el => {
     htmlList.push(layouts[el.__config__.layout](el))
   })
-  const htmlStr = htmlList.join('\n')
+  const htmlStr = htmlList.join('\n'); //每个元素之间换行
   // 将组件代码放进form标签
   let temp = buildFormTemplate(formConfig, htmlStr, type)
   // dialog标签包裹代码

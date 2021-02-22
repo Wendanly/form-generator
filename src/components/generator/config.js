@@ -46,7 +46,8 @@ export const inputComponents = [{
     maxlength: null,
     'show-word-limit': false,
     readonly: false,
-    disabled: false
+    disabled: false,
+    size: 'medium',
   },
   {
     __config__: {
@@ -107,7 +108,8 @@ export const inputComponents = [{
     maxlength: null,
     'show-word-limit': false,
     readonly: false,
-    disabled: false
+    disabled: false,
+    size: 'medium',
   },
   {
     __config__: {
@@ -131,7 +133,8 @@ export const inputComponents = [{
     'step-strictly': false,
     precision: undefined,
     'controls-position': '',
-    disabled: false
+    disabled: false,
+    size: 'medium',
   },
   {
     __config__: {
@@ -185,7 +188,8 @@ export const selectComponents = [{
     clearable: true,
     disabled: false,
     filterable: false,
-    multiple: false
+    multiple: false,
+    size: 'medium',
   },
   {
     __config__: {
@@ -233,7 +237,8 @@ export const selectComponents = [{
     disabled: false,
     clearable: true,
     filterable: false,
-    separator: '/'
+    separator: '/',
+    size: 'medium',
   },
   {
     __config__: {
@@ -275,7 +280,7 @@ export const selectComponents = [{
       showLabel: true,
       labelWidth: null,
       layout: 'colFormItem',
-      optionType: 'default',
+      optionType: 'default', //该组件是否显示尺寸大小选项不能像其他组件那样通过tag来判断，因为当optionType: 'default'时无大小一说，只有当optionType: 'button'时才有大小一说，所以要通过optionType来判断该是否可以调整大小
       required: true,
       regList: [],
       changeTag: true,
@@ -368,7 +373,8 @@ export const selectComponents = [{
       selectableRange: '00:00:00-23:59:59'
     },
     format: 'HH:mm:ss',
-    'value-format': 'HH:mm:ss'
+    'value-format': 'HH:mm:ss',
+    size: 'medium',
   },
   {
     __config__: {
@@ -395,7 +401,8 @@ export const selectComponents = [{
     'start-placeholder': '开始时间',
     'end-placeholder': '结束时间',
     format: 'HH:mm:ss',
-    'value-format': 'HH:mm:ss'
+    'value-format': 'HH:mm:ss',
+    size: 'medium',
   },
   {
     __config__: {
@@ -421,7 +428,8 @@ export const selectComponents = [{
     clearable: true,
     format: 'yyyy-MM-dd',
     'value-format': 'yyyy-MM-dd',
-    readonly: false
+    readonly: false,
+    size: 'medium',
   },
   {
     __config__: {
@@ -449,7 +457,8 @@ export const selectComponents = [{
     clearable: true,
     format: 'yyyy-MM-dd',
     'value-format': 'yyyy-MM-dd',
-    readonly: false
+    readonly: false,
+    size: 'medium',
   },
   {
     __config__: {
@@ -528,7 +537,7 @@ export const selectComponents = [{
 // 布局型组件 【左面板】
 export const layoutComponents = [{
     __config__: {
-      layout: 'rowFormItem',
+      layout: 'rowFormItemWrap',
       tagIcon: 'row',
       label: '行容器',
       layoutTree: true,
@@ -579,6 +588,7 @@ export const layoutComponents = [{
       method: 'get',
       dataPath: 'list',
       dataConsumer: 'data',
+
       url: 'https://www.fastmock.site/mock/f8d7a54fb1e60561e2f720d5a810009d/fg/tableData',
       children: [{
         __config__: {
@@ -587,7 +597,8 @@ export const layoutComponents = [{
           renderKey: 15957617660153
         },
         prop: 'date',
-        label: '日期'
+        label: '日期',
+        'show-overflow-tooltip': true,
       }, {
         __config__: {
           layout: 'raw',
@@ -595,7 +606,8 @@ export const layoutComponents = [{
           renderKey: 15957617660152
         },
         prop: 'address',
-        label: '地址'
+        label: '地址',
+        'show-overflow-tooltip': true,
       }, {
         __config__: {
           layout: 'raw',
@@ -603,7 +615,8 @@ export const layoutComponents = [{
           renderKey: 15957617660151
         },
         prop: 'name',
-        label: '名称'
+        label: '名称',
+        'show-overflow-tooltip': true,
       }, {
         __config__: {
           layout: 'raw',
@@ -615,17 +628,19 @@ export const layoutComponents = [{
               tag: 'el-button',
               tagIcon: 'button',
               layout: 'raw',
+              eventName: 'eventName' + Math.floor(Math.random() * 10),
               renderKey: 1595779809901
             },
             __slot__: {
-              default: '主要按钮'
+              default: '编辑'
             },
             type: 'primary',
-            icon: 'el-icon-search',
+            // icon: 'el-icon-search',
             round: false,
-            size: 'medium'
+            size: 'mini'
           }]
         },
+        width: '100px',
         label: '操作'
       }]
     },
@@ -638,6 +653,49 @@ export const layoutComponents = [{
     border: true,
     type: 'default',
     justify: 'start',
-    align: 'top'
-  }
+    align: 'top',
+    style: "width: 100%",
+    'v-loading': "table" + Math.floor(Math.random() * 10) + 'Loading',
+    ref: "table" + Math.floor(Math.random() * 10),
+    tableData: 'tableData' + Math.floor(Math.random() * 10), //表格list名称
+  },
+  {
+    __config__: {
+      label: '分页',
+      changeTag: true,
+      tag: 'el-pagination',
+      tagIcon: 'pagination',
+      span: 24,
+      layout: 'colFormItem', //
+      document: 'https://element.eleme.cn/#/zh-CN/component/pagination',
+      forData: {
+        //用于在vue生命周期中data里展示的字段
+        'pageSize': 10, //每页显示条目个数，支持 .sync 修饰符
+        total: 0, //总条目数
+        'currentPage': 1, //当前页码，支持 .sync 修饰符
+        rowsKey: 'rows', //每页显示条目个数 key名称
+        pageKey: 'page', //当前页码 key名称
+        totalKey: 'total', //总条数 key名称
+      },
+      eventName: {
+        sizeChange: true,
+        currentChange: true,
+        sizeChangeName: 'sizeChange', //改变每页条数的事件名称
+        currentChangeName: 'currentChange', //改变页码的事件名称
+
+      },
+    },
+    small: false, //小型分页，间距会紧凑一点
+    background: false, //是否为分页按钮添加背景色
+    'page-size': 10, //每页显示条目个数，支持 .sync 修饰符
+    // 'page-sizes': [10, 20, 50, 100], //每页显示个数选择器的选项设置
+    total: 0, //总条目数
+    'pager-count': 7, //页码按钮的数量，当总页数超过该值时会折叠,可选值：大于等于 5 且小于等于 21 的奇数；默认值： 7
+    'current-page': 1, //当前页码，支持 .sync 修饰符
+    layout: "sizes, prev, pager, next, jumper",
+    style: {
+      'text-align': 'right'
+    },
+
+  },
 ]
