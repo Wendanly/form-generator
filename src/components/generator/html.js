@@ -170,8 +170,8 @@ const tags = {
     const pageSize = el['page-size'] ? `:page-size='${el.__config__.forData.rowsKey}'` : 10;
     const layout = el['layout'] ? `layout='sizes, prev, pager, next, jumper'` : '';
     //构建事件
-    const sizeChange = el.__config__.eventName['sizeChange'] ? `@size-change="${el.__config__.eventName.sizeChangeName}('fromCondition')"` : '';
-    const currentChange = el.__config__.eventName['currentChange'] ? `@current-change="${el.__config__.eventName.currentChangeName}('fromCondition')"` : '';
+    const sizeChange = el.__config__.eventName['sizeChange'] ? `@size-change="${el.__config__.eventName.sizeChange}('fromCondition')"` : '';
+    const currentChange = el.__config__.eventName['currentChange'] ? `@current-change="${el.__config__.eventName.currentChange}('fromCondition')"` : '';
     return `<${tag} ${pagerCount} ${small}  ${layout} ${background} ${total} ${currentPage} ${pageSize} ${sizeChange} ${currentChange}></${tag}>`
   },
   // 表格
@@ -183,27 +183,62 @@ const tags = {
     const loading = 'v-loading' in el ? `v-loading='${el['v-loading']}'` : '';
     const style = 'style' in el ? `style='${el['style']}'` : '';
     const border = 'border' in el ? 'border' : '';
-    const ref = 'ref' in el ? `ref=${el['ref']}` : '';
-    const data = 'data' in el ? `:data= "${confGlobal.formModel}.${el['tableData']}"` : [];
+    const ref = 'ref' in el ? `ref='${el['ref']}'` : '';
+    const data = 'data' in el ? `:data= "${confGlobal.formModel}.${el.__config__.forData['tableData']}"` : []; //初始化data
+
     //构建事件
-    const sizeChange = el.__config__.eventName['sizeChange'] ? `@size-change="${el.__config__.eventName.sizeChangeName}('fromCondition')"` : '';
-    const currentChange = el.__config__.eventName['currentChange'] ? `@current-change="${el.__config__.eventName.currentChangeName}('fromCondition')"` : '';
+    // const sizeChange = el.__config__.eventName['getTableData'] ? `@size-change="${el.__config__.eventName.sizeChangeName}('fromCondition')"` : '';
+    // const currentChange = el.__config__.eventName['currentChange'] ? `@current-change="${el.__config__.eventName.currentChangeName}('fromCondition')"` : '';
+
+
+
+    // 最后一列是否为操作列
+    let tmpCol = el.__config__.children[el.__config__.children.length - 1];
+    let isOpertion = tmpCol.label == '操作' ? true : false;
+    let operationWidth = '';
+    let child = '';
+    let operationCol = '';
+    //是操作列
+    if (isOpertion) {
+      operationWidth = '120px';
+      let btnsList = JSON.parse(JSON.stringify(tmpCol.__config__.children));
+      child = btnsList.map(item => tags['el-button'](item)); //渲染操作列里的btn
+      operationCol = `<el-table-column label="操作" width="${operationWidth}">
+<template slot-scope="scope">
+    <template>
+    ${child}
+    </template>
+ </template>
+</el-table-column>`
+    }
+    //渲染列
+    let tmpChildren = el.__config__.children;
+    let tmpColumnList = isOpertion ? tmpChildren.slice(0, tmpChildren.length - 1) : tmpChildren.slice(0, tmpChildren.length);
+    let columnList = [];
+
+    tmpColumnList.map(item => {
+      let width = item.width ? `width='${item.width}'` : '';
+      let align = item.align ? `align='${item.align}'` : '';
+      let fixed = item.fixed ? `fixed='${item.fixed}'` : '';
+      let sortable = item.sortable ? `sortable='${item.sortable}'` : '';
+      columnList.push(`<el-table-column
+      prop='${item.prop}'
+      label='${item.label}'
+      :show-overflow-tooltip="true"
+      ${width}
+      ${align}
+      ${fixed}
+      ${sortable}
+    ></el-table-column>`);
+    });
+    columnList = columnList.join('');
+
+
     console.log(data);
     return `
   <${tag} ${loading} ${data} ${style} ${ref} ${border}>
-  
-  <el-table-column
-  :prop="item.prop"
-  :label="item.label"
-  :width="item.width"
-  :show-overflow-tooltip="true"
-  v-for='(item,index) in ${el.__config__.children.substr(0,el.__config__.children.length - 2)}' :key='index'
-></el-table-column>
-<template v-if='${item.label == "操作"}'>
-
-</template>
-
-  
+      ${columnList}
+      ${operationCol}
  </${tag}>
   `;
 

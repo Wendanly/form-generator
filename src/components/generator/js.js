@@ -63,7 +63,7 @@ function buildAttributes(scheme, formDataList, commonDataList, ruleList, options
   const config = scheme.__config__
   const slot = scheme.__slot__
   buildData(scheme, formDataList); //构建formData
-  buildcommonData(scheme, commonDataList); //构建普通的data字段，非表单里的，如：分页、对话框的关闭、打开灯字段
+  buildcommonData(scheme, commonDataList); //构建普通的data字段，非表单里的，如：分页、对话框的关闭、打开等字段
   buildRules(scheme, ruleList); //构建校验规则
 
   // 特殊处理options属性
@@ -78,11 +78,13 @@ function buildAttributes(scheme, formDataList, commonDataList, ruleList, options
       callInCreated(methodName, created); //把该方法放到created里调用
     }
   }
-  //添加分页组件的事件
+  //添加事件和方法
   switch (config.tag) {
     case 'el-pagination':
-      buildPaginationMethod([config.eventName.currentChangeName, config.eventName.sizeChangeName], methodList, scheme); //构建分页组件的事件,如：页面改变、每页展示条数改变
-
+      buildPaginationMethod([config.eventName.currentChange, config.eventName.sizeChange], methodList, scheme); //构建分页组件的事件,如：页面改变、每页展示条数改变
+      break;
+    case 'el-table':
+      buildTableMethod([config.eventName.getTableData], methodList, scheme); //构建表格组件的方法,如：获取数据
       break;
 
     default:
@@ -164,12 +166,18 @@ function mixinMethod(type) {
   return list
 }
 
-// 构建data 取出vModel
+// 构建data 取出vModel,
 function buildData(scheme, formDataList) {
   const config = scheme.__config__
   if (scheme.__vModel__ === undefined) return;
   const defaultValue = JSON.stringify(config.defaultValue);
-  formDataList.push(`${scheme.__vModel__}: ${defaultValue},`);
+  // formData下面的字段不是每个都要传到后端的(不是每个都是可配的,如：表单下的tableData变量，他只是接受数据，但他得写在formData下面，因为表格被表单包裹着 )
+  if (['el-table'].indexOf(config.tag) > -1) {
+    formDataList.push(`${config.forData['tableData']}:${defaultValue},`); //
+  } else {
+    formDataList.push(`${scheme.__vModel__}: ${defaultValue},`);
+  }
+
 }
 
 // 构建校验规则
@@ -218,8 +226,9 @@ function buildProps(scheme, propsList) {
 }
 // 构建普通data数据，如：打开、关闭模态框的标志位、分页组件必须参数等
 function buildcommonData(scheme, commonDataList) {
+  let tag = scheme.__config__.tag; //通过标签来定制字段
+  //分页组件 ,scheme.__config__.forData 这是因为配置项的顶层没有这些参数，在里面写的
   if (scheme.__config__.forData) {
-    let tag = scheme.__config__.tag; //通过标签来定制字段
     switch (tag) {
       case 'el-pagination':
         commonDataList.push(`${scheme.__config__.forData.rowsKey}: ${scheme.__config__.forData.pageSize},`);
@@ -230,6 +239,10 @@ function buildcommonData(scheme, commonDataList) {
         break;
     }
 
+  }
+  //表格组件
+  if (tag == 'el-table') {
+    commonDataList.push(`${scheme['v-loading'] }:false,`); //表格加载效果标志位
   }
 
 }
@@ -271,7 +284,7 @@ function buildSubmitUpload(scheme) {
   },`
   return str
 }
-
+//定义下拉组件获取数据的方法
 function buildOptionMethod(methodName, model, methodList, scheme) {
   const config = scheme.__config__; //取出表单配置项
   const str = `${methodName}() {
@@ -301,6 +314,30 @@ function buildPaginationMethod(methodNameList, methodList, scheme) {
     this.getTableData();
   },`
   methodList.push(str2); //往已有的方法里添加
+
+}
+//定义表格组件所涉及的方法或事件
+function buildTableMethod(methodNameList, methodList, scheme) {
+  const config = scheme.__config__; //取出表单配置项
+  let totalKey = '';
+  confGlobal.fields.filter(item => {
+    item.__config__.tag == 'el-pagination' ? totalKey = item.__config__.forData.totalKey : '';
+  });
+  //获取表格数据
+  const str = `${methodNameList[0]}() {
+    // 注意：this.$axios是通过Vue.prototype.$axios = axios挂载产生的
+    this.$axios({
+      method: '${config.method}',
+      url: '${config.url}'
+    }).then(resp => {
+      var { data } = resp;
+      this.${confGlobal.formModel}.${config.forData.tableData}= data.${config.dataPath};
+      //给分页组件的total灌值，但当前还没有渲染到分页组件，如何取得total的名称？ 答案：遍历所有组件找
+      this.${totalKey} = data.${totalKey};//总条数
+      
+    })
+  },`
+  methodList.push(str); //往已有的方法里添加
 
 }
 

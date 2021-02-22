@@ -8,15 +8,15 @@
       @open="onOpen"
       @close="onClose"
     >
-      <div slot="title">编辑按钮</div>
+      <div slot="title">设计列</div>
       <div class="icon-ul">
         <el-form :rules="rules" :model="ruleForm" ref="ruleForm">
-          <el-form-item label="按钮风格">
+          <!-- <el-form-item label="按钮风格">
             <el-radio-group v-model="model">
               <el-radio label="1">文字按钮</el-radio>
               <el-radio label="2">普通按钮</el-radio>
             </el-radio-group>
-          </el-form-item>
+          </el-form-item>-->
           <el-table
             :data="ruleForm.tableData"
             height="calc(100vh - 190px)"
@@ -148,18 +148,19 @@ export default {
       });
     },
     onOpen() {
-      let arr = JSON.parse(JSON.stringify(this.current)); //回显时高亮
-      console.log(arr);
       this.ruleForm.tableData = [];
-      this.ruleForm.tableData = arr.map(item => {
+      this.ruleForm.tableData = this.current.map(item => {
         return {
           name: item.__slot__.default,
           eventName: item.__config__.eventName,
           type: item.type
         };
       });
+      console.log(this.$attrs);
     },
-    onClose() {},
+    onClose() {
+      this.$emit("update:visible", false); //关闭模态框
+    },
     submit(icon) {
       // this.active = icon;
       this.$emit("select", JSON.parse(JSON.stringify(this.ruleForm.tableData)));

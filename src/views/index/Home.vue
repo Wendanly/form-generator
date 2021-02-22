@@ -258,6 +258,12 @@ export default {
         this.saveIdGlobalDebounce(val); //固化idGlobal ，初始值100
       },
       immediate: true
+    },
+    activeData: {
+      handler(val) {
+        console.log(val);
+      },
+      deep: true
     }
   },
   mounted() {
@@ -371,7 +377,7 @@ export default {
       this.drawingList.push(clone); //把左侧点击的元素添加到右侧数组里，此动作就会在右侧自动渲染组件
       this.activeFormItem(clone); //使当前组件在右侧高亮，这句话可能要放到 cloneComponent方法里
     },
-    //配置部分属性，如 占得列宽，给组件增加唯一标识
+    //配置部分属性，如 占的列宽，给组件增加唯一标识
     cloneComponent(origin) {
       console.log(origin);
       const clone = deepClone(origin);

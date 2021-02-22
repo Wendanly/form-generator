@@ -585,66 +585,82 @@ export const layoutComponents = [{
       labelWidth: null,
       label: '表格[开发中]',
       dataType: 'dynamic',
+      //取数配置
       method: 'get',
-      dataPath: 'list',
-      dataConsumer: 'data',
-
       url: 'https://www.fastmock.site/mock/f8d7a54fb1e60561e2f720d5a810009d/fg/tableData',
+      dataPath: 'list', //数据位置，
+      dataConsumer: 'data',
+      defaultValue: [], //表格数据，默认为空
+      forData: {
+        //用于在vue生命周期中data里展示的字段
+        tableData: 'tableData' + Math.floor(Math.random() * 10), //表格list名称
+      },
+      //添加方法:获取表格数据、单选、多选
+      eventName: {
+        getTableData: 'getTableData' + Math.floor(Math.random() * 10), //获取表格数据方法名
+      },
       children: [{
-        __config__: {
-          layout: 'raw',
-          tag: 'el-table-column',
-          renderKey: 15957617660153
+          __config__: {
+            layout: 'raw',
+            tag: 'el-table-column',
+            renderKey: 15957617660153,
+            colType: '1', //默认是普通列
+          },
+          prop: 'date',
+          label: '日期',
+          'show-overflow-tooltip': true,
+        }, {
+          __config__: {
+            layout: 'raw',
+            tag: 'el-table-column',
+            renderKey: 15957617660152,
+            colType: '1', //默认是普通列
+          },
+          prop: 'address',
+          label: '地址',
+          'show-overflow-tooltip': true,
+        }, {
+          __config__: {
+            layout: 'raw',
+            tag: 'el-table-column',
+            renderKey: 15957617660151,
+            colType: '1', //默认是普通列
+          },
+          prop: 'name',
+          label: '名称',
+          'show-overflow-tooltip': true,
         },
-        prop: 'date',
-        label: '日期',
-        'show-overflow-tooltip': true,
-      }, {
-        __config__: {
-          layout: 'raw',
-          tag: 'el-table-column',
-          renderKey: 15957617660152
-        },
-        prop: 'address',
-        label: '地址',
-        'show-overflow-tooltip': true,
-      }, {
-        __config__: {
-          layout: 'raw',
-          tag: 'el-table-column',
-          renderKey: 15957617660151
-        },
-        prop: 'name',
-        label: '名称',
-        'show-overflow-tooltip': true,
-      }, {
-        __config__: {
-          layout: 'raw',
-          tag: 'el-table-column',
-          renderKey: 1595774496335,
-          children: [{
-            __config__: {
-              label: '按钮',
-              tag: 'el-button',
-              tagIcon: 'button',
-              layout: 'raw',
-              eventName: 'eventName' + Math.floor(Math.random() * 10),
-              renderKey: 1595779809901
-            },
-            __slot__: {
-              default: '编辑'
-            },
-            type: 'primary',
-            // icon: 'el-icon-search',
-            round: false,
-            size: 'mini'
-          }]
-        },
-        width: '100px',
-        label: '操作'
-      }]
+        {
+          __config__: {
+            layout: 'raw',
+            tag: 'el-table-column',
+            renderKey: 1595774496335,
+            colType: '4', //操作列
+            children: [{
+              __config__: {
+                label: '按钮',
+                tag: 'el-button',
+                tagIcon: 'button',
+                layout: 'raw',
+                eventName: 'eventName' + Math.floor(Math.random() * 10),
+                renderKey: 1595779809901
+              },
+              __slot__: {
+                default: '编辑'
+              },
+              type: 'primary',
+              // icon: 'el-icon-search',
+              round: false,
+              size: 'mini'
+            }]
+          },
+          width: '80px',
+          label: '操作'
+        }
+
+      ]
     },
-    data: [],
+    data: [], //这个属性是是为了预览才设置的，真正生成代码时不用这个属性
     //directives 是为该组件添加一些动作指令，如：加载效果，后期可能还会增加其他动作
     directives: [{
       name: 'loading',
@@ -657,7 +673,6 @@ export const layoutComponents = [{
     style: "width: 100%",
     'v-loading': "table" + Math.floor(Math.random() * 10) + 'Loading',
     ref: "table" + Math.floor(Math.random() * 10),
-    tableData: 'tableData' + Math.floor(Math.random() * 10), //表格list名称
   },
   {
     __config__: {
@@ -678,11 +693,8 @@ export const layoutComponents = [{
         totalKey: 'total', //总条数 key名称
       },
       eventName: {
-        sizeChange: true,
-        currentChange: true,
-        sizeChangeName: 'sizeChange', //改变每页条数的事件名称
-        currentChangeName: 'currentChange', //改变页码的事件名称
-
+        sizeChange: 'sizeChange' + Math.floor(Math.random() * 10), //改变每页条数的事件名称
+        currentChange: 'currentChange' + Math.floor(Math.random() * 10), //改变页码的事件名称
       },
     },
     small: false, //小型分页，间距会紧凑一点

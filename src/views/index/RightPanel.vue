@@ -383,12 +383,17 @@
           <template v-if="['el-table'].indexOf(activeData.__config__.tag) > -1">
             <el-divider>列展示</el-divider>
             <draggable
+              class="draggable"
+              filter=".forbid"
               :list="activeData.__config__.children"
               :animation="340"
               group="selectItem"
               handle=".option-drag"
+              @end="end"
+              :move="onMove"
             >
               <div
+                :class="item.label== '操作'?'forbid':''"
                 v-for="(item, index) in activeData.__config__.children"
                 :key="index"
                 class="select-item"
@@ -406,14 +411,16 @@
                   :placeholder="item.label == '操作'?'':'值'"
                   size="small"
                   :disabled="item.label == '操作'"
-                  :value="item.prop"
-                  @input="setOptionValue(item, $event)"
+                  v-model="item.prop"
                 />
                 <div
-                  class="close-btn select-line-icon"
+                  class="del-color size"
                   @click="activeData.__config__.children.splice(index, 1)"
                 >
                   <i class="el-icon-remove-outline" />
+                </div>
+                <div class="edit-color size" @click="edit(item,index)">
+                  <i class="el-icon-edit" />
                 </div>
               </div>
             </draggable>
@@ -659,23 +666,6 @@
           </el-form-item>
           <el-form-item
             v-if="activeData.__config__.tag === 'el-pagination'"
-            label="改变页码事件名称"
-            label-width="130px"
-          >
-            <el-input
-              v-model="activeData.__config__.eventName.currentChangeName"
-              placeholder="请输入事件名称"
-            ></el-input>
-          </el-form-item>
-          <el-form-item
-            v-if="activeData.__config__.tag === 'el-pagination'"
-            label="改变条数事件名"
-            label-width="130px"
-          >
-            <el-input v-model="activeData.__config__.eventName.sizeChangeName" placeholder="请输入事件名"></el-input>
-          </el-form-item>
-          <el-form-item
-            v-if="activeData.__config__.tag === 'el-pagination'"
             label="总条数字段名"
             label-width="120px"
           >
@@ -780,6 +770,12 @@
       @select="setIcon"
     />
     <EditOperationColDialog :visible.sync="btnVisible" :current="currentBtnList" @select="setBtn" />
+    <EditCommunColDialog
+      :visible.sync="CommunVisible"
+      :currentColIndex="currentColIndex"
+      :current="activeData"
+      @select="setCommunCol"
+    />
   </div>
 </template>
 
@@ -789,6 +785,7 @@ import TreeNodeDialog from "@/views/index/TreeNodeDialog";
 import { isNumberStr } from "@/utils/index";
 import IconsDialog from "./IconsDialog";
 import EditOperationColDialog from "./EditOperationColDialog";
+import EditCommunColDialog from "./EditCommunColDialog";
 import {
   inputComponents,
   selectComponents,
@@ -814,7 +811,8 @@ export default {
   components: {
     TreeNodeDialog,
     IconsDialog,
-    EditOperationColDialog
+    EditOperationColDialog,
+    EditCommunColDialog
   },
   props: ["showField", "activeData", "formConf"],
   data() {
@@ -825,6 +823,7 @@ export default {
       //表格
       iconsVisible: false,
       btnVisible: false, //编辑操作按钮
+      CommunVisible: false, //编辑普通列
       currentIconModel: null,
       dateTypeOptions: [
         {
@@ -935,7 +934,8 @@ export default {
           value: "4"
         }
       ],
-      colType: "1"
+      colType: "1",
+      currentColIndex: null
     };
   },
   computed: {
@@ -953,7 +953,7 @@ export default {
       this.activeData.__config__.children &&
         this.activeData.__config__.children.filter(item => {
           if (item.label == "操作" && item.__config__.children) {
-            arr = JSON.parse(JSON.stringify(item.__config__.children));
+            arr = item.__config__.children;
           }
         });
       // console.log(arr);
@@ -1029,6 +1029,7 @@ export default {
   },
   methods: {
     setBtn(val) {
+      //获取所选的按钮list，并组装
       let arr = JSON.parse(JSON.stringify(val)).map(item => {
         return {
           __config__: {
@@ -1048,15 +1049,35 @@ export default {
           size: "mini"
         };
       });
-      console.log(arr);
+      // console.log(arr);
       this.activeData.__config__.children &&
         this.activeData.__config__.children.filter((item, index) => {
           if (item.label == "操作" && item.__config__.children) {
-            // this.$set(this.activeData.__config__.children[index].__config__,'children',arr);
+            //设置操作列的宽
+            item.width = `${80 * arr.length}px`;
             item.__config__.children = arr;
-            
           }
         });
+    },
+    setCommunCol(item) {
+      let val = item[0];
+      let tmp = {
+        label: val.label,
+        prop: val.prop,
+        width: val.width,
+        align: val.align,
+        fixed: val.fixed ? val.fixed : false,
+        sortable: val.sortable ? val.sortable : false
+      };
+      this.activeData.__config__.children[this.currentColIndex];
+      Object.assign(
+        this.activeData.__config__.children[this.currentColIndex],
+        tmp
+      );
+      this.end(); //强制更新
+      console.log(
+        JSON.parse(JSON.stringify(this.activeData.__config__.children))
+      );
     },
     addReg() {
       this.activeData.__config__.regList.push({
@@ -1072,11 +1093,13 @@ export default {
     },
     // 增加表格列
     addTableItem() {
+      let _this = this;
       function tmpFun() {
         return {
           layout: "raw",
           tag: "el-table-column",
-          renderKey: String(Math.random()).split(".")[1]
+          renderKey: String(Math.random()).split(".")[1],
+          colType: _this.colType
         };
       }
       let obj = {};
@@ -1130,8 +1153,24 @@ export default {
               label: "操作"
             };
             this.activeData.__config__.children.push(obj); //新增操作列
+          } else {
+            this.$message.warning("请勿重复添加！");
           }
-          this.openBtnDialog();
+          break;
+
+        default:
+          break;
+      }
+    },
+    //
+    edit(item, index) {
+      this.currentColIndex = index;
+      switch (item.__config__.colType) {
+        case "1":
+          this.openCommunColDialog();
+          break;
+        case "4":
+          this.openOperationColDialog();
           break;
 
         default:
@@ -1161,6 +1200,18 @@ export default {
           </span>
         </div>
       );
+    },
+    end() {
+      //不知怎么的，右侧面板拖动表格后，左面没更新，所以用此方法强制更新了
+      this.activeData.__config__.renderKey = `${
+        this.activeData.__config__.formId
+      }${+new Date()}`;
+    },
+    //禁止拖动到操作列
+    onMove(e) {
+      // console.log(e.relatedContext.element);
+      if (e.relatedContext.element.label == "操作") return false;
+      return true;
     },
     append(data) {
       if (!data.children) {
@@ -1259,8 +1310,11 @@ export default {
       this.iconsVisible = true;
       this.currentIconModel = model;
     },
-    openBtnDialog() {
+    openOperationColDialog() {
       this.btnVisible = true;
+    },
+    openCommunColDialog() {
+      this.CommunVisible = true;
     },
     setIcon(val) {
       this.activeData[this.currentIconModel] = val;
@@ -1358,5 +1412,20 @@ export default {
 }
 .node-icon {
   color: #bebfc3;
+}
+.draggable {
+  .del-color {
+    cursor: pointer;
+    color: #f56c6c;
+  }
+  .edit-color {
+    cursor: pointer;
+    color: #7e84d4;
+  }
+  .size {
+    line-height: 32px;
+    font-size: 15px;
+    padding: 0 4px;
+  }
 }
 </style>
