@@ -179,7 +179,7 @@ const tags = {
     const {
       tag,
     } = attrBuilder(el);
-    //以下是特有的属性
+    //以下是特有的属性--el-table上的属性
     const loading = 'v-loading' in el ? `v-loading='${el['v-loading']}'` : '';
     const style = 'style' in el ? `style='${el['style']}'` : '';
     const border = 'border' in el ? 'border' : '';
@@ -203,19 +203,18 @@ const tags = {
       operationWidth = '120px';
       let btnsList = JSON.parse(JSON.stringify(tmpCol.__config__.children));
       child = btnsList.map(item => tags['el-button'](item)); //渲染操作列里的btn
-      operationCol = `<el-table-column label="操作" width="${operationWidth}">
-<template slot-scope="scope">
-    <template>
-    ${child}
-    </template>
- </template>
-</el-table-column>`
+      operationCol =
+        `<el-table-column label="操作" width="${operationWidth}">
+              <template slot-scope="scope">
+              ${child}
+              </template>
+        </el-table-column>`
     }
-    //渲染列
+    //渲染列 --el-table-columns上的属性
     let tmpChildren = el.__config__.children;
     let tmpColumnList = isOpertion ? tmpChildren.slice(0, tmpChildren.length - 1) : tmpChildren.slice(0, tmpChildren.length);
     let columnList = [];
-
+    tmpColumnList.map();
     tmpColumnList.map(item => {
       let width = item.width ? `width='${item.width}'` : '';
       let align = item.align ? `align='${item.align}'` : '';
@@ -232,15 +231,13 @@ const tags = {
     ></el-table-column>`);
     });
     columnList = columnList.join('');
-
-
     console.log(data);
     return `
-  <${tag} ${loading} ${data} ${style} ${ref} ${border}>
-      ${columnList}
-      ${operationCol}
- </${tag}>
-  `;
+          <${tag} ${loading} ${data} ${style} ${ref} ${border}>
+            ${columnList}
+            ${operationCol}
+          </${tag}>
+          `;
 
 
 

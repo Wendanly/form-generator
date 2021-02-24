@@ -1028,8 +1028,8 @@ export default {
     }
   },
   methods: {
+    //获取所选的按钮list，并组装
     setBtn(val) {
-      //获取所选的按钮list，并组装
       let arr = JSON.parse(JSON.stringify(val)).map(item => {
         return {
           __config__: {
@@ -1059,25 +1059,17 @@ export default {
           }
         });
     },
-    setCommunCol(item) {
-      let val = item[0];
-      let tmp = {
-        label: val.label,
-        prop: val.prop,
-        width: val.width,
-        align: val.align,
-        fixed: val.fixed ? val.fixed : false,
-        sortable: val.sortable ? val.sortable : false
-      };
-      this.activeData.__config__.children[this.currentColIndex];
-      Object.assign(
-        this.activeData.__config__.children[this.currentColIndex],
-        tmp
-      );
+    //解析树形结构
+    parseTreeData(item) {
+      item.__config__.children = item.children; //上面的放到里面
+      item.__config__.children.map(o => o.children && this.parseTreeData(o));
+    },
+    //获取普通列list，并组装
+    setCommunCol(list) {
+      let obj = JSON.parse(JSON.stringify(list[0]));
+      this.parseTreeData(obj);
+      this.activeData.__config__.children[this.currentColIndex] = obj;
       this.end(); //强制更新
-      console.log(
-        JSON.parse(JSON.stringify(this.activeData.__config__.children))
-      );
     },
     addReg() {
       this.activeData.__config__.regList.push({
@@ -1091,26 +1083,29 @@ export default {
         value: ""
       });
     },
-    // 增加表格列
-    addTableItem() {
-      let _this = this;
-      function tmpFun() {
-        return {
+    initConfig() {
+      return {
+        __config__: {
           layout: "raw",
           tag: "el-table-column",
           renderKey: String(Math.random()).split(".")[1],
-          colType: _this.colType
-        };
-      }
+          colType: this.colType
+        },
+        prop: "prop" + Math.floor(Math.random() * 100),
+        label: "label" + Math.floor(Math.random() * 100),
+        "show-overflow-tooltip": true,
+        width: "",
+        align: "left",
+        fixed: false,
+        sortable: false
+      };
+    },
+    // 增加表格列
+    addTableItem() {
       let obj = {};
       switch (this.colType) {
         case "1":
-          obj = {
-            __config__: { ...tmpFun() },
-            prop: "prop",
-            label: "label",
-            "show-overflow-tooltip": true
-          };
+          obj = this.initConfig();
           let index = -1;
           this.activeData.__config__.children.map((item, inde) => {
             item.label == "操作" ? (index = inde) : "";
@@ -1125,37 +1120,33 @@ export default {
           let flag = this.activeData.__config__.children.some(
             item => item.label == "操作"
           );
+          if (flag) return this.$message.warning("请勿重复添加！");
           //若无操作列，则添加
-          if (!flag) {
-            obj = {
+          obj = this.initConfig();
+          //挂载children节点
+          obj.__config__.children = [
+            {
               __config__: {
-                ...tmpFun(),
-                children: [
-                  {
-                    __config__: {
-                      label: "按钮",
-                      tag: "el-button",
-                      tagIcon: "button",
-                      layout: "raw",
-                      eventName: "eventName" + Math.floor(Math.random() * 10),
-                      renderKey: String(Math.random()).split(".")[1]
-                    },
-                    __slot__: {
-                      default: "编辑"
-                    },
-                    type: "primary",
-                    // icon: 'el-icon-search',
-                    round: false,
-                    size: "mini"
-                  }
-                ]
+                label: "按钮",
+                tag: "el-button",
+                tagIcon: "button",
+                layout: "raw",
+                eventName: "eventName" + Math.floor(Math.random() * 10),
+                renderKey: String(Math.random()).split(".")[1]
               },
-              label: "操作"
-            };
-            this.activeData.__config__.children.push(obj); //新增操作列
-          } else {
-            this.$message.warning("请勿重复添加！");
-          }
+              __slot__: {
+                default: "编辑"
+              },
+              type: "primary",
+              // icon: 'el-icon-search',
+              round: false,
+              size: "mini"
+            }
+          ];
+          //修改默认label
+          obj.label = "操作";
+          delete obj.prop; //踢出prop，因为操作列不需要prop
+          this.activeData.__config__.children.push(obj); //新增操作列
           break;
 
         default:

@@ -609,6 +609,11 @@ export const layoutComponents = [{
           prop: 'date',
           label: '日期',
           'show-overflow-tooltip': true,
+          width: '',
+          align: 'left',
+          fixed: false,
+          sortable: false
+
         }, {
           __config__: {
             layout: 'raw',
@@ -619,6 +624,10 @@ export const layoutComponents = [{
           prop: 'address',
           label: '地址',
           'show-overflow-tooltip': true,
+          width: '',
+          align: 'left',
+          fixed: false,
+          sortable: false
         }, {
           __config__: {
             layout: 'raw',
@@ -629,6 +638,10 @@ export const layoutComponents = [{
           prop: 'name',
           label: '名称',
           'show-overflow-tooltip': true,
+          width: '',
+          align: 'left',
+          fixed: false,
+          sortable: false
         },
         {
           __config__: {

@@ -140,7 +140,7 @@ function renderChildren(h, currentItem, index, list) {
   return config.children.map((el, i) => {
     const layout = layouts[el.__config__.layout];
     if (layout) {
-      return layout.call(this, h, el, i, config.children);
+      return layout.call(this, h, el, i, config.children); //这里就是渲染表格子元素的，通过children
     }
     return layoutIsNotFound.call(this);
   });

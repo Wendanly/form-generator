@@ -2,85 +2,69 @@
   <div class="icon-dialog">
     <el-dialog
       v-bind="$attrs"
-      width="980px"
+      width="900px"
       :modal-append-to-body="false"
       v-on="$listeners"
       @open="onOpen"
       @close="onClose"
     >
       <div slot="title">设计列</div>
-      <div class="icon-ul">
-        <el-form :rules="rules" :model="ruleForm" ref="ruleForm">
-          <el-table
-            :data="ruleForm.tableData"
-            height="calc(100vh - 400px)"
-            style="width: 100%"
-            ref="table"
-          >
-            <el-table-column label="列名称">
-              <template slot-scope="scope">
-                <el-form-item :prop="'tableData.' + scope.$index + '.label'">
-                  <el-input size="mini" clearable v-model="scope.row.label" placeholder="请输入列名称"></el-input>
-                </el-form-item>
-              </template>
-            </el-table-column>
-            <el-table-column label="列字段">
-              <template slot-scope="scope">
-                <el-form-item :prop="'tableData.' + scope.$index + '.prop'">
-                  <el-input size="mini" clearable v-model="scope.row.prop" placeholder="请输入列字段"></el-input>
-                </el-form-item>
-              </template>
-            </el-table-column>
-            <el-table-column label="列宽度">
-              <template slot-scope="scope">
-                <el-form-item :prop="'tableData.' + scope.$index + '.width'">
-                  <el-input size="mini" clearable v-model="scope.row.width" placeholder="请输入列宽度"></el-input>
-                </el-form-item>
-              </template>
-            </el-table-column>
-            <el-table-column label="对齐方式">
-              <template slot-scope="scope">
-                <el-form-item :prop="'tableData.' + scope.$index + '.align'">
-                  <el-select size="mini" clearable v-model="scope.row.align" placeholder="请选择">
-                    <el-option
-                      v-for="(item,index) in alignList"
-                      :key="index"
-                      :label="item.label"
-                      :value="item.value"
-                    ></el-option>
-                  </el-select>
-                </el-form-item>
-              </template>
-            </el-table-column>
-            <el-table-column label="是否固定列">
-              <template slot-scope="scope">
-                <el-form-item :prop="'tableData.' + scope.$index + '.fixed'">
-                  <el-select size="mini" clearable v-model="scope.row.fixed" placeholder="请选择">
-                    <el-option
-                      v-for="(item,index) in fixedList"
-                      :key="index"
-                      :label="item.label"
-                      :value="item.value"
-                    ></el-option>
-                  </el-select>
-                </el-form-item>
-              </template>
-            </el-table-column>
-            <el-table-column label="是否排序">
-              <template slot-scope="scope">
-                <el-form-item :prop="'tableData.' + scope.$index + '.sortable'">
-                  <el-select size="mini" clearable v-model="scope.row.sortable" placeholder="请选择">
-                    <el-option
-                      v-for="(item,index) in sortableList"
-                      :key="index"
-                      :label="item.label"
-                      :value="item.value"
-                    ></el-option>
-                  </el-select>
-                </el-form-item>
-              </template>
-            </el-table-column>
-          </el-table>
+      <div class="content">
+        <div class="left">
+          <el-tree
+            ref="tree"
+            highlight-current
+            :data="treeData"
+            node-key="renderKey"
+            default-expand-all
+            :expand-on-click-node="false"
+            :render-content="renderContent"
+            @node-click="nodeClick"
+          ></el-tree>
+        </div>
+        <el-form class="right" :rules="rules" label-width="120px" :model="ruleForm" ref="ruleForm">
+          <div class="form-cell">
+            <el-form-item label="列名称">
+              <el-input size="mini" clearable v-model="ruleForm.label" placeholder="请输入列名称"></el-input>
+            </el-form-item>
+
+            <el-form-item label="列字段" v-if="!hasChild">
+              <el-input size="mini" clearable v-model="ruleForm.prop" placeholder="请输入列字段"></el-input>
+            </el-form-item>
+            <el-form-item label="列宽度">
+              <el-input size="mini" clearable v-model="ruleForm.width" placeholder="请输入列宽度"></el-input>
+            </el-form-item>
+            <el-form-item label="对齐方式">
+              <el-select size="mini" clearable v-model="ruleForm.align" placeholder="请选择">
+                <el-option
+                  v-for="(item,index) in alignList"
+                  :key="index"
+                  :label="item.label"
+                  :value="item.value"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="是否固定列" v-if="!hasChild">
+              <el-select size="mini" clearable v-model="ruleForm.fixed" placeholder="请选择">
+                <el-option
+                  v-for="(item,index) in fixedList"
+                  :key="index"
+                  :label="item.label"
+                  :value="item.value"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="是否排序" v-if="!hasChild">
+              <el-select size="mini" clearable v-model="ruleForm.sortable" placeholder="请选择">
+                <el-option
+                  v-for="(item,index) in sortableList"
+                  :key="index"
+                  :label="item.label"
+                  :value="item.value"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+          </div>
         </el-form>
       </div>
       <span slot="footer" class="dialog-footer">
@@ -91,22 +75,21 @@
   </div>
 </template>
 <script>
-import iconList from "@/utils/icon.json";
-
-const originList = iconList.map(name => `el-icon-${name}`);
-
 export default {
   inheritAttrs: false,
   props: ["current"],
   data() {
     return {
-      iconList: originList,
-      active: null,
-      key: "",
+      treeData: [],
       rules: {},
       model: "1",
       ruleForm: {
-        tableData: []
+        label: "",
+        prop: "",
+        width: "",
+        align: "left",
+        fixed: false,
+        sortable: false
       },
       alignList: [
         {
@@ -141,45 +124,98 @@ export default {
           label: "否",
           value: false
         }
-      ]
+      ],
+      hasChild: true //是否是最后一层
     };
   },
-  watch: {
-    key(val) {
-      if (val) {
-        this.iconList = originList.filter(name => name.indexOf(val) > -1);
-      } else {
-        this.iconList = originList;
-      }
-    }
-  },
+  watch: {},
+
   mounted() {},
   methods: {
-    bulidTableModel() {},
-    del(scope) {
-      this.ruleForm.tableData.splice(scope.$index, 1);
+    nodeClick(data) {
+      this.ruleForm = data; //赋值给表单
+      this.currentObj = JSON.parse(JSON.stringify(data)); //深拷贝
+      this.hasChild = data.children && data.children.length ? true : false;
     },
-
+    renderContent(h, { node, data, store }) {
+      // console.log(data);
+      let disbaled = node.parent.id == 0 ? true : false;
+      return (
+        <span class="custom-tree-node">
+          <span style="display: inline-block;width: 100px;">{node.label}</span>
+          <span>
+            <el-button
+              size="mini"
+              type="text"
+              on-click={e => {
+                this.append(data);
+                e.stopPropagation();
+              }}
+            >
+              添加子节点
+            </el-button>
+            <el-button
+              disabled={(disbaled = node.parent.id == 0 ? true : false)}
+              size="mini"
+              type="text"
+              on-click={e => {
+                this.remove(node, data);
+                e.stopPropagation();
+              }}
+            >
+              删除
+            </el-button>
+          </span>
+        </span>
+      );
+    },
+    append(data) {
+      let baseConfig = this.$parent.initConfig();
+      baseConfig.renderKey = this.initConfig(); //添加renderKey和children
+      if (!data.children) {
+        this.$set(data, "children", []);
+      }
+      data.children.push(baseConfig);
+      // console.log(JSON.parse(JSON.stringify(data)));
+      //添加子节点时当前节点会变成父节点，此时要改变标志位
+      if (this.currentObj.label == data.label && data.children.length)
+        this.hasChild = true;
+    },
+    //添加renderKey ,树形渲染需要唯一标识
+    initConfig() {
+      return String(Math.random()).split(".")[1];
+    },
+    remove(node, data) {
+      const parent = node.parent;
+      const children = parent.data.children || parent.data;
+      const index = children.findIndex(d => d.renderKey === data.renderKey);
+      children.splice(index, 1);
+    },
+    //构造树形数据结构
+    buildTreeData(item) {
+      let i = "__config__";
+      item.renderKey = this.initConfig();
+      if (item[i].children && item[i].children.length) {
+        item.children = item[i].children; //把__config__ 下的children提到上面来
+        item.children.map(o => this.buildTreeData(o));
+      }
+    },
     onOpen() {
-      this.ruleForm.tableData = [];
-      let item = this.current.__config__.children[this.$attrs.currentColIndex];
-      this.ruleForm.tableData.push({
-        label: item.label,
-        prop: item.prop,
-        width: item.width,
-        align: item.align,
-        fixed: item.fixed ? item.fixed : false,
-        sortable: item.sortable ? item.sortable : false
+      let item = this.current.__config__.children[this.$attrs.currentColIndex]; //找到当前列的对象
+      this.buildTreeData(item); //添加renderKey和children
+      this.treeData = [item]; //赋值给树形
+      this.$nextTick(() => {
+        let arr = document.querySelectorAll(".custom-tree-node");
+        if (!arr.length) return;
+        console.log(arr);
+        arr[0].click(); //默认选中第一个节点
       });
-      console.log(JSON.parse(JSON.stringify(this.ruleForm.tableData)));
     },
     onClose() {
       this.$emit("update:visible", false); //关闭模态框
     },
     submit(icon) {
-      // this.active = icon;
-      console.log(JSON.parse(JSON.stringify(this.ruleForm.tableData)));
-      this.$emit("select", JSON.parse(JSON.stringify(this.ruleForm.tableData)));
+      this.$emit("select", JSON.parse(JSON.stringify(this.treeData)));
       this.$emit("update:visible", false); //关闭模态框
     }
   }
@@ -203,6 +239,28 @@ export default {
       margin: 0 20px 20px 20px;
       padding: 0;
       overflow: auto;
+    }
+  }
+}
+
+.content {
+  display: flex;
+  .left {
+    width: 30%;
+  }
+  .right {
+    flex: 1;
+    border-left: 1px solid #dcd9d9;
+    margin-left: 20px;
+    .form-cell {
+      height: 400px;
+      overflow: auto;
+      ::v-deep .el-form-item__content {
+        width: 320px;
+      }
+      ::v-deep .el-select {
+        width: 320px;
+      }
     }
   }
 }
