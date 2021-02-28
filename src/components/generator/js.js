@@ -320,9 +320,12 @@ function buildPaginationMethod(methodNameList, methodList, scheme) {
 function buildTableMethod(methodNameList, methodList, scheme) {
   const config = scheme.__config__; //取出表单配置项
   let totalKey = '';
+  let totalKeyExpression = '';
   confGlobal.fields.filter(item => {
     item.__config__.tag == 'el-pagination' ? totalKey = item.__config__.forData.totalKey : '';
   });
+  totalKey ? totalKeyExpression = `this.${totalKey}=data.${totalKey}` : '';
+
   //获取表格数据
   const str = `${methodNameList[0]}() {
     // 注意：this.$axios是通过Vue.prototype.$axios = axios挂载产生的
@@ -333,8 +336,8 @@ function buildTableMethod(methodNameList, methodList, scheme) {
       var { data } = resp;
       this.${confGlobal.formModel}.${config.forData.tableData}= data.${config.dataPath};
       //给分页组件的total灌值，但当前还没有渲染到分页组件，如何取得total的名称？ 答案：遍历所有组件找
-      this.${totalKey} = data.${totalKey};//总条数
-      
+      //总条数
+      ${totalKeyExpression}
     })
   },`
   methodList.push(str); //往已有的方法里添加

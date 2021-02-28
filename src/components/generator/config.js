@@ -550,7 +550,7 @@ export const layoutComponents = [{
   {
     __config__: {
       label: '按钮',
-      showLabel: true,
+      showLabel: false,
       changeTag: true,
       labelWidth: null,
       tag: 'el-button',
@@ -580,7 +580,7 @@ export const layoutComponents = [{
       formId: 101,
       renderKey: 1595761764203,
       componentName: 'row101',
-      showLabel: true,
+      showLabel: false,
       changeTag: true,
       labelWidth: null,
       label: '表格[开发中]',

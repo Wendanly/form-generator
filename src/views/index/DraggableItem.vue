@@ -162,13 +162,15 @@ export default {
   render(h) {
     const layout = layouts[this.currentItem.__config__.layout]; //组件布局类型
     if (layout) {
-      return layout.call(
+      let dd = layout.call(
         this,
         h,
         this.currentItem,
         this.index,
         this.drawingList
       );
+      console.log(dd);
+      return dd;
     }
     return layoutIsNotFound.call(this);
   }

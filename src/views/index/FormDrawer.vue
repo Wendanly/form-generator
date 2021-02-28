@@ -93,7 +93,7 @@ import { exportDefault, beautifierConf, titleCase } from "@/utils/index";
 import ResourceDialog from "./ResourceDialog"; //外部资源对话框
 import loadMonaco from "@/utils/loadMonaco"; //加载编辑区主题风格
 import loadBeautifier from "@/utils/loadBeautifier"; //美化代码
-
+import * as selfMonaco from "monaco-editor";
 //储存代码
 const editorObj = {
   html: null,
@@ -162,7 +162,18 @@ export default {
         e.preventDefault();
       }
     },
+    loadEditTool() {
+      // 使用element ui实现加载提示
+      this.loading = ELEMENT.Loading.service({
+        fullscreen: true,
+        lock: true,
+        text: "编辑器资源初始化中...",
+        spinner: "el-icon-loading",
+        background: "rgba(255, 255, 255, 0.5)"
+      });
+    },
     onOpen() {
+      this.loadEditTool();
       const { type } = this.generateConf; //页面还是弹窗
       this.htmlCode = makeUpHtml(this.formData, type);
       this.jsCode = makeUpJs(this.formData, type);
@@ -178,18 +189,17 @@ export default {
         _this.jsCode = beautifier.js(_this.jsCode, beautifierConf.js);
         _this.cssCode = beautifier.css(_this.cssCode, beautifierConf.html);
         //把代码写入编辑区
-        loadMonaco(val => {
-          monaco = val;
-          _this.setEditorValue("editorHtml", "html", _this.htmlCode); //把美化好的代码写入对应的编辑区里
-          _this.setEditorValue("editorJs", "js", _this.jsCode); //把美化好的代码写入对应的编辑区里
-          _this.setEditorValue("editorCss", "css", _this.cssCode); //把美化好的代码写入对应的编辑区里
-          if (!_this.isInitcode) {
-            _this.isRefreshCode = true;
-            _this.isIframeLoaded &&
-              (_this.isInitcode = true) &&
-              _this.runCode();
-          }
-        });
+        // loadMonaco(val => {
+        //   monaco = val;
+        _this.setEditorValue("editorHtml", "html", _this.htmlCode); //把美化好的代码写入对应的编辑区里
+        _this.setEditorValue("editorJs", "js", _this.jsCode); //把美化好的代码写入对应的编辑区里
+        _this.setEditorValue("editorCss", "css", _this.cssCode); //把美化好的代码写入对应的编辑区里
+        this.loading.close();
+        if (!_this.isInitcode) {
+          _this.isRefreshCode = true;
+          _this.isIframeLoaded && (_this.isInitcode = true) && _this.runCode();
+        }
+        // });
       });
     },
     onClose() {
@@ -209,12 +219,16 @@ export default {
         editorObj[type].setValue(codeStr);
       } else {
         //如果没有加载过，则需要重新加载
-        editorObj[type] = monaco.editor.create(document.getElementById(id), {
-          value: codeStr, //对应的代码
-          theme: "vs-dark",
-          language: mode[type], //对应的代码类型
-          automaticLayout: true
-        });
+        editorObj[type] = selfMonaco.editor.create(
+          document.getElementById(id),
+          {
+            value: codeStr, //对应的代码
+            theme: "vs-dark",
+            language: mode[type], //对应的代码类型
+            automaticLayout: true
+          }
+        );
+        console.log(editorObj[type]);
       }
       // ctrl + s 刷新
       //在编辑区实例上绑定事件

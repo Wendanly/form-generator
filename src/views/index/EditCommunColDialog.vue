@@ -264,4 +264,7 @@ export default {
     }
   }
 }
+::v-deep .el-form-item {
+  margin-bottom: 10px;
+}
 </style>

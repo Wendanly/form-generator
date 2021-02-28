@@ -1,4 +1,6 @@
-import { loadScriptQueue } from './loadScript'
+import {
+  loadScriptQueue
+} from './loadScript'
 import ELEMENT from 'element-ui'
 
 // monaco-editor单例
@@ -14,19 +16,19 @@ export default function loadMonaco(cb) {
     return
   }
 
-  const vs = 'https://lib.baomitu.com/monaco-editor/0.19.3/min/vs'
+  const vs = '../../node_modules/monaco-editor/min/vs'
 
   // 使用element ui实现加载提示
   const loading = ELEMENT.Loading.service({
-    fullscreen: true,
-    lock: true,
-    text: '编辑器资源初始化中...',
-    spinner: 'el-icon-loading',
-    background: 'rgba(255, 255, 255, 0.5)'
-  })
+      fullscreen: true,
+      lock: true,
+      text: '编辑器资源初始化中...',
+      spinner: 'el-icon-loading',
+      background: 'rgba(255, 255, 255, 0.5)'
+    })
 
-  !window.require && (window.require = {})
-  !window.require.paths && (window.require.paths = {})
+    !window.require && (window.require = {});
+  !window.require.paths && (window.require.paths = {});
   window.require.paths.vs = vs
 
   loadScriptQueue([

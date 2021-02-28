@@ -1,5 +1,8 @@
 /* eslint-disable max-len */
 import ruleTrigger from './ruleTrigger'
+import {
+  sortRule
+} from '@/utils/commonFun.js'
 
 let confGlobal
 let someSpanIsNot24
@@ -76,6 +79,97 @@ function colWrapper(scheme, str) {
     </el-col>`
   }
   return str
+}
+//多级表头
+function muliColumn(scheme, str) {
+  return `<template>
+  <el-table-column :prop="col.prop"
+    :label="col.label"
+    align="left">
+    <template v-if="col.children">
+      <my-column v-for="(item, index) in col.children"
+        :key="index"
+        :col="item"></my-column>
+    </template>
+
+  </el-table-column>
+</template>`;
+}
+
+function father(flag, item) {
+  let {
+    width,
+    align,
+    fixed,
+    sortable,
+  } = getColAttrbute(item);
+  let childStr = `<el-table-column
+  prop='${item.prop}'
+  label='${item.label}'
+  :show-overflow-tooltip="true"
+  ${width}
+  ${align}
+  ${fixed}
+  ${sortable}
+></el-table-column>`;
+  let fatherStr = `<el-table-column
+  label='${item.label}'
+   ${width}
+   ${align}
+ >${childStr}</el-table-column>`;
+  return flag == 'fu' ? fatherStr : childStr;
+}
+let allList = [];
+let count = 0;
+let lastChildrenList = [];
+let fatherLevelList = [];
+// 渲染多级表头
+function multiTableHeader(list, id) {
+  list.map((o, j) => {
+    o.id = count++;
+    o.parentId = id == 'topLevel' ? 'top' : id;
+    if (o.children)
+      multiTableHeader(o.children, o.id);
+  });
+
+}
+//删选出最后一级
+function findLastChildren(list) {
+  list.map(o => {
+    if (o.children && o.children.length) {
+      findLastChildren(o.children);
+    } else {
+      lastChildrenList.push(o);
+    }
+  });
+
+}
+//获取父层级
+function getFatherLevelList(list, item, j) {
+  for (let i = 0, len = list.length; i < len; i++) {
+    if (list[i].id == item.parentId) {
+      fatherLevelList[j].push(list[i]);
+      if (list[i].parentId != 'top') {
+        getFatherLevelList(allList, list[i], j);
+      } else {
+        return;
+      }
+    } else if (list[i].children) {
+      getFatherLevelList(list[i].children, item, j);
+    }
+
+  }
+
+}
+
+
+function getColAttrbute(item) {
+  return {
+    width: item.width ? `width='${item.width}'` : '',
+    align: item.align ? `align='${item.align}'` : '',
+    fixed: item.fixed ? `fixed='${item.fixed}'` : '',
+    sortable: item.sortable ? `sortable='${item.sortable}'` : '',
+  };
 }
 
 const layouts = {
@@ -214,8 +308,35 @@ const tags = {
     let tmpChildren = el.__config__.children;
     let tmpColumnList = isOpertion ? tmpChildren.slice(0, tmpChildren.length - 1) : tmpChildren.slice(0, tmpChildren.length);
     let columnList = [];
-    tmpColumnList.map();
+
+    count = 0;
+    allList = [];
+    lastChildrenList = [];
+    fatherLevelList = [];
     tmpColumnList.map(item => {
+      let i = '__config__';
+      if (item[i].children) {
+        multiTableHeader(item[i].children, 'topLevel'); //多级表头
+        allList = item[i].children;
+        // console.log(JSON.parse(JSON.stringify(item[i])));
+        findLastChildren(item[i].children); //最后一级childrenlist
+        console.log(JSON.parse(JSON.stringify(lastChildrenList)));
+
+        lastChildrenList.map((o, j) => {
+          fatherLevelList.push([]);
+          fatherLevelList[j];
+          getFatherLevelList(item[i].children, o, j); //一开始赋值全量的
+          fatherLevelList[j].push(o);
+        });
+        fatherLevelList.map(o => {
+          o.sort(sortRule); //排序
+          o.map(p => {});
+        });
+        console.log(JSON.parse(JSON.stringify(fatherLevelList))); //最终的
+
+
+      }
+
       let width = item.width ? `width='${item.width}'` : '';
       let align = item.align ? `align='${item.align}'` : '';
       let fixed = item.fixed ? `fixed='${item.fixed}'` : '';
@@ -238,9 +359,6 @@ const tags = {
             ${operationCol}
           </${tag}>
           `;
-
-
-
   },
   'el-input-number': el => {
     const {
