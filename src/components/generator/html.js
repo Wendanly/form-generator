@@ -80,89 +80,71 @@ function colWrapper(scheme, str) {
   }
   return str
 }
-//多级表头
-function muliColumn(scheme, str) {
-  return `<template>
-  <el-table-column :prop="col.prop"
-    :label="col.label"
-    align="left">
-    <template v-if="col.children">
-      <my-column v-for="(item, index) in col.children"
-        :key="index"
-        :col="item"></my-column>
-    </template>
 
-  </el-table-column>
-</template>`;
-}
-
-function father(flag, item) {
-  let {
-    width,
-    align,
-    fixed,
-    sortable,
-  } = getColAttrbute(item);
-  let childStr = `<el-table-column
-  prop='${item.prop}'
-  label='${item.label}'
-  :show-overflow-tooltip="true"
-  ${width}
-  ${align}
-  ${fixed}
-  ${sortable}
-></el-table-column>`;
-  let fatherStr = `<el-table-column
-  label='${item.label}'
-   ${width}
-   ${align}
- >${childStr}</el-table-column>`;
-  return flag == 'fu' ? fatherStr : childStr;
-}
-let allList = [];
-let count = 0;
-let lastChildrenList = [];
-let fatherLevelList = [];
+let count = 0; //节点id累加
 // 渲染多级表头
+/*
+1、添加节点id（唯一的）；
+2、给子父节点添加标记，为了以后被替换
+
+*/
 function multiTableHeader(list, id) {
   list.map((o, j) => {
+    let {
+      width,
+      align,
+      fixed,
+      sortable,
+    } = getColAttrbute(o);
     o.id = count++;
     o.parentId = id == 'topLevel' ? 'top' : id;
-    if (o.children)
-      multiTableHeader(o.children, o.id);
-  });
-
-}
-//删选出最后一级
-function findLastChildren(list) {
-  list.map(o => {
     if (o.children && o.children.length) {
-      findLastChildren(o.children);
+      o.fuStr = `<el-table-column
+         label='${o.label}'
+          ${width}
+          ${align}
+         >id:${o.id}</el-table-column>`;
+      multiTableHeader(o.children, o.id);
     } else {
-      lastChildrenList.push(o);
+      o.childStr = `<el-table-column
+                  prop='${o.prop}'
+                  label='${o.label}'
+                  :show-overflow-tooltip="true"
+                  ${width}
+                  ${align}
+                  ${fixed}
+                  ${sortable}
+                ></el-table-column>`;
     }
   });
-
 }
-//获取父层级
-function getFatherLevelList(list, item, j) {
-  for (let i = 0, len = list.length; i < len; i++) {
-    if (list[i].id == item.parentId) {
-      fatherLevelList[j].push(list[i]);
-      if (list[i].parentId != 'top') {
-        getFatherLevelList(allList, list[i], j);
-      } else {
-        return;
-      }
-    } else if (list[i].children) {
-      getFatherLevelList(list[i].children, item, j);
+let resultStr = ''; //最终渲染好的列
+let hasChildrenList = []; //有子的节点，临时
+//获取顶层
+function joinStr(list) {
+  list.map(o => { //顶层
+    if (o.fuStr) {
+      resultStr += o.fuStr;
+      hasChildrenList.push(o); //这里存的都是有子的
+    } else {
+      resultStr += o.childStr;
     }
-
-  }
-
+  });
+  replaceStr(list, hasChildrenList[0]); //只需传入第一个有子的,之后的不需要传入
 }
-
-
+//在id标记处插入子节点
+function replaceStr(list, item) {
+  list.map((o, j) => { //
+    if (o.parentId == item.id) {
+      let str = 'id:' + item.id;
+      let index = resultStr.indexOf(str);
+      resultStr = resultStr.slice(0, index) + (o.fuStr ? o.fuStr : o.childStr) + resultStr.slice(index)
+    }
+    o.children && o.children.length ? replaceStr(o.children, o) : '';
+    //这个地方有点奇妙
+  });
+}
+//获取节点属性
 function getColAttrbute(item) {
   return {
     width: item.width ? `width='${item.width}'` : '',
@@ -306,53 +288,46 @@ const tags = {
     }
     //渲染列 --el-table-columns上的属性
     let tmpChildren = el.__config__.children;
-    let tmpColumnList = isOpertion ? tmpChildren.slice(0, tmpChildren.length - 1) : tmpChildren.slice(0, tmpChildren.length);
-    let columnList = [];
+    let tmpColumnList = isOpertion ? tmpChildren.slice(0, tmpChildren.length - 1) : tmpChildren.slice(0, tmpChildren.length); //除了操作列的原始数据
+    let columnList = []; //存放除了操作列的list
 
-    count = 0;
-    allList = [];
-    lastChildrenList = [];
-    fatherLevelList = [];
+    count = 0; //重置累加器
+    resultStr = ''; //
+    hasChildrenList = [];
     tmpColumnList.map(item => {
-      let i = '__config__';
-      if (item[i].children) {
-        multiTableHeader(item[i].children, 'topLevel'); //多级表头
-        allList = item[i].children;
-        // console.log(JSON.parse(JSON.stringify(item[i])));
-        findLastChildren(item[i].children); //最后一级childrenlist
-        console.log(JSON.parse(JSON.stringify(lastChildrenList)));
-
-        lastChildrenList.map((o, j) => {
-          fatherLevelList.push([]);
-          fatherLevelList[j];
-          getFatherLevelList(item[i].children, o, j); //一开始赋值全量的
-          fatherLevelList[j].push(o);
-        });
-        fatherLevelList.map(o => {
-          o.sort(sortRule); //排序
-          o.map(p => {});
-        });
-        console.log(JSON.parse(JSON.stringify(fatherLevelList))); //最终的
-
-
-      }
-
       let width = item.width ? `width='${item.width}'` : '';
       let align = item.align ? `align='${item.align}'` : '';
       let fixed = item.fixed ? `fixed='${item.fixed}'` : '';
       let sortable = item.sortable ? `sortable='${item.sortable}'` : '';
-      columnList.push(`<el-table-column
-      prop='${item.prop}'
-      label='${item.label}'
-      :show-overflow-tooltip="true"
-      ${width}
-      ${align}
-      ${fixed}
-      ${sortable}
-    ></el-table-column>`);
+      let i = '__config__';
+      if (item[i].children) {
+        //多级表头
+        multiTableHeader(item[i].children, 'topLevel'); //给表头添加标记等信息
+        joinStr(item[i].children); //获取顶层
+        // console.log(JSON.parse(JSON.stringify(item[i])));
+        resultStr = resultStr.replace(/id:\d{1,2}/g, '');
+        // console.log(resultStr);
+        //套一个顶层
+        columnList.push(`<el-table-column
+        label='${item.label}'
+        ${width}
+        ${align}
+      >${resultStr}</el-table-column>`);
+      } else {
+        //非多级
+        columnList.push(`<el-table-column
+        prop='${item.prop}'
+        label='${item.label}'
+        :show-overflow-tooltip="true"
+        ${width}
+        ${align}
+        ${fixed}
+        ${sortable}
+      ></el-table-column>`);
+      }
     });
     columnList = columnList.join('');
-    console.log(data);
+    // console.log(data);
     return `
           <${tag} ${loading} ${data} ${style} ${ref} ${border}>
             ${columnList}

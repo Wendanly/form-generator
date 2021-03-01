@@ -178,9 +178,6 @@ export default {
       this.htmlCode = makeUpHtml(this.formData, type);
       this.jsCode = makeUpJs(this.formData, type);
       this.cssCode = makeUpCss(this.formData);
-      console.log(this.htmlCode);
-      console.log(this.jsCode);
-      console.log(this.cssCode);
       let _this = this;
       //美化代码
       loadBeautifier(btf => {
@@ -228,7 +225,6 @@ export default {
             automaticLayout: true
           }
         );
-        console.log(editorObj[type]);
       }
       // ctrl + s 刷新
       //在编辑区实例上绑定事件
