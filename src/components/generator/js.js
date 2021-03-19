@@ -364,7 +364,6 @@ function buildTableMethod(methodNameList, methodList, scheme) {
     item.__config__.tag == 'el-pagination' ? totalKey = item.__config__.forData.totalKey : '';
   });
   totalKey ? totalKeyExpression = `this.${totalKey}=data.${totalKey}` : '';
-
   //获取表格数据
   const str = `${methodNameList[0]}() {
     // 注意：this.$axios是通过Vue.prototype.$axios = axios挂载产生的
