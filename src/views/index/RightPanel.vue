@@ -3,6 +3,7 @@
     <el-tabs v-model="currentTab" class="center-tabs">
       <el-tab-pane label="组件属性" name="field" />
       <el-tab-pane label="表单属性" name="form" />
+      <el-tab-pane label="事件配置" name="eventConfig" />
     </el-tabs>
     <div class="field-box">
       <a class="document-link" target="_blank" :href="documentLink" title="查看组件文档">
@@ -40,6 +41,7 @@
           >{{ activeData.__config__.componentName }}</el-form-item>
           <el-form-item
             v-if="activeData.__config__.showLabel !== undefined
+            && !['el-pagination'].includes(activeData.__config__.tag)
             && activeData.__config__.labelWidth !== undefined"
             label="标题"
           >
@@ -106,7 +108,11 @@
               <el-radio-button label="bottom" />
             </el-radio-group>
           </el-form-item>
-          <el-form-item v-if="activeData.__config__.labelWidth!==undefined" label="标签宽度">
+          <el-form-item
+            v-if="activeData.__config__.labelWidth!==undefined 
+           && !['el-pagination'].includes(activeData.__config__.tag)"
+            label="标签宽度"
+          >
             <el-input
               v-model.number="activeData.__config__.labelWidth"
               type="number"
@@ -116,7 +122,12 @@
           <el-form-item v-if="activeData.style&&activeData.style.width!==undefined" label="组件宽度">
             <el-input v-model="activeData.style.width" placeholder="请输入组件宽度" clearable />
           </el-form-item>
-          <el-form-item v-if="activeData.__vModel__!==undefined" label="默认值">
+          <el-form-item
+            v-if="activeData.__vModel__!==undefined
+          && !['el-pagination'].includes(activeData.__config__.tag)
+          "
+            label="默认值"
+          >
             <el-input
               :value="setDefaultValue(activeData.__config__.defaultValue)"
               placeholder="请输入默认值"
@@ -340,43 +351,87 @@
             v-if="['el-checkbox-group', 'el-radio-group', 'el-select'].indexOf(activeData.__config__.tag) > -1"
           >
             <el-divider>选项</el-divider>
-            <draggable
-              :list="activeData.__slot__.options"
-              :animation="340"
-              group="selectItem"
-              handle=".option-drag"
-            >
-              <div
-                v-for="(item, index) in activeData.__slot__.options"
-                :key="index"
-                class="select-item"
-              >
-                <div class="select-line-icon option-drag">
-                  <i class="el-icon-s-operation" />
-                </div>
-                <el-input v-model="item.label" placeholder="选项名" size="small" />
+            <el-form-item v-if="activeData.__config__.dataType" label="数据类型">
+              <el-radio-group v-model="activeData.__config__.dataType" size="small">
+                <el-radio-button label="dynamic">动态数据</el-radio-button>
+                <el-radio-button label="static">静态数据</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+            <template v-if="activeData.__config__.dataType === 'dynamic'">
+              <el-form-item label="接口地址">
                 <el-input
-                  placeholder="选项值"
-                  size="small"
-                  :value="item.value"
-                  @input="setOptionValue(item, $event)"
-                />
-                <div
-                  class="close-btn select-line-icon"
-                  @click="activeData.__slot__.options.splice(index, 1)"
+                  v-model="activeData.__config__.url"
+                  :title="activeData.__config__.url"
+                  placeholder="请输入接口地址"
+                  clearable
+                  @blur="$emit('fetch-data', activeData)"
                 >
-                  <i class="el-icon-remove-outline" />
+                  <el-select
+                    slot="prepend"
+                    v-model="activeData.__config__.method"
+                    :style="{width: '85px'}"
+                    @change="$emit('fetch-data', activeData)"
+                  >
+                    <el-option label="get" value="get" />
+                    <el-option label="post" value="post" />
+                    <el-option label="put" value="put" />
+                    <el-option label="delete" value="delete" />
+                  </el-select>.
+                </el-input>
+              </el-form-item>
+              <el-form-item label="数据位置">
+                <el-input
+                  v-model="activeData.__config__.dataPath"
+                  placeholder="请输入数据位置"
+                  @blur="$emit('fetch-data', activeData)"
+                />
+              </el-form-item>
+            </template>
+            <template v-else>
+              <draggable
+                :list="activeData.__slot__.options"
+                :animation="340"
+                group="selectItem"
+                handle=".option-drag"
+              >
+                <div
+                  v-for="(item, index) in activeData.__slot__.options"
+                  :key="index"
+                  class="select-item"
+                >
+                  <div class="select-line-icon option-drag">
+                    <i class="el-icon-s-operation" />
+                  </div>
+                  <el-input v-model="item[activeData.__slot__.key]" placeholder="选项名" size="small" />
+                  <el-input
+                    placeholder="选项值"
+                    size="small"
+                    :value="item[activeData.__slot__.value]"
+                    @input="setOptionValue(item, $event)"
+                  />
+                  <div
+                    class="close-btn select-line-icon"
+                    @click="activeData.__slot__.options.splice(index, 1)"
+                  >
+                    <i class="el-icon-remove-outline" />
+                  </div>
                 </div>
+              </draggable>
+              <div style="margin-left: 20px;margin-bottom: 20px;">
+                <el-button
+                  style="padding-bottom: 0"
+                  icon="el-icon-circle-plus-outline"
+                  type="text"
+                  @click="addSelectItem"
+                >添加选项</el-button>
               </div>
-            </draggable>
-            <div style="margin-left: 20px;">
-              <el-button
-                style="padding-bottom: 0"
-                icon="el-icon-circle-plus-outline"
-                type="text"
-                @click="addSelectItem"
-              >添加选项</el-button>
-            </div>
+            </template>
+            <el-form-item label="键字段名">
+              <el-input v-model="activeData.__slot__.key" placeholder="请输入键字段名" />
+            </el-form-item>
+            <el-form-item label="值字段名">
+              <el-input v-model="activeData.__slot__.value" placeholder="请输入值字段名" />
+            </el-form-item>
             <el-divider />
           </template>
           <!-- 表格添加列名 -->
@@ -522,13 +577,22 @@
           <el-form-item v-if="activeData['inactive-color'] !== undefined" label="关闭颜色">
             <el-color-picker v-model="activeData['inactive-color']" />
           </el-form-item>
-
+          <!-- 目前只有分页组件一定不需要展示label，所以要踢出分页组件 -->
           <el-form-item
             v-if="activeData.__config__.showLabel !== undefined
-            && activeData.__config__.labelWidth !== undefined"
+            && activeData.__config__.labelWidth !== undefined 
+            && !['el-pagination'].includes(activeData.__config__.tag)"
             label="显示标签"
           >
             <el-switch v-model="activeData.__config__.showLabel" />
+          </el-form-item>
+          <!-- 是否显示组件 -->
+          <el-form-item v-if="activeData.__config__.hideComponent!== undefined" label="显示组件">
+            <el-switch
+              v-model="activeData.__config__.hideComponent"
+              :active-value="false"
+              :inactive-value="true"
+            />
           </el-form-item>
           <el-form-item v-if="activeData.branding !== undefined" label="品牌烙印">
             <el-switch v-model="activeData.branding" @input="changeRenderKey" />
@@ -760,6 +824,93 @@
             <el-switch v-model="formConf.unFocusedComponentBorder" />
           </el-form-item>
         </el-form>
+        <!-- 组件事件配置-->
+        <el-form
+          v-show="currentTab === 'eventConfig'&&showField&&['el-select'].includes(activeData.__config__.tag)"
+          size="small"
+          label-width="90px"
+        >
+          <el-form-item label="事件类型">
+            <el-select
+              style="width: 100%"
+              v-model="activeData.__config__.eventType"
+              placeholder="请选择事件类型"
+            >
+              <el-option v-for="item in eventOptions" :key="item" :label="item" :value="item"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="触发选项表达式" class="expression">
+            <el-row :gutter="10" style="width: 100%;">
+              <el-col :span="7" style="padding-left:0;">
+                <el-input size="mini" v-model="activeData.__slot__.value" disabled placeholder></el-input>
+              </el-col>
+              <el-col :span="8" style="padding-left:0;padding-right:0" class="middle">
+                <el-select size="mini" v-model="activeData.__slot__.equal" placeholder>
+                  <el-option label="等于" value="=="></el-option>
+                  <el-option label="不等于" value="!="></el-option>
+                  <el-option label="全部" value="all"></el-option>
+                </el-select>
+              </el-col>
+              <el-col :span="8" style>
+                <el-input size="mini" v-model="activeData.__slot__.result" placeholder></el-input>
+              </el-col>
+            </el-row>
+          </el-form-item>
+          <!--事件关联字段 -->
+          <template>
+            <el-divider>字段展示</el-divider>
+            <draggable
+              class="draggable"
+              :list="activeData.__config__.associatedWord"
+              :animation="340"
+              group="selectItem"
+              handle=".option-drag"
+              :disabled="true"
+              @end="end"
+              :move="onMove"
+            >
+              <!-- 当activeData.__config__.associatedWord.length为真时在打开，不然会报错，因为item.__config__.label是深入到第二层了 -->
+              <template v-show="activeData.__config__.associatedWord.length">
+                <div
+                  v-for="(item, index) in activeData.__config__.associatedWord"
+                  :key="index"
+                  class="select-item"
+                >
+                  <div class="select-line-icon option-drag">
+                    <i class="el-icon-s-operation" />
+                  </div>
+                  <el-input v-model="item.__config__.label" placeholder="字段名" size="small" />
+                  <el-input placeholder="值" size="small" v-model="item.__vModel__" />
+                  <div class="del-color size" @click="delAssociateWord(item,index)">
+                    <i class="el-icon-remove-outline" />
+                  </div>
+                  <div class="edit-color size" @click="openEventHandleVisibleDialog(item,index)">
+                    <i class="el-icon-edit" />
+                  </div>
+                </div>
+              </template>
+            </draggable>
+            <el-form-item style="margin-top: 20px;" label="关联字段" label-width="90px">
+              <el-select clearable v-model="currentSelectedWordFormId" placeholder="关联字段">
+                <el-option
+                  v-for="(item,index) in associatedWordList"
+                  :key="index"
+                  :label="item.__config__.label"
+                  :value="item.__config__.formId"
+                  :disabled="item.isDisabled"
+                ></el-option>
+              </el-select>
+              <el-button
+                style="padding-bottom: 0"
+                type="text"
+                size="mini"
+                @click="addAssociatedWord"
+              >确定</el-button>
+            </el-form-item>
+            <el-divider />
+          </template>
+          <!-- 结束 -->
+        </el-form>
       </el-scrollbar>
     </div>
 
@@ -769,6 +920,7 @@
       :current="activeData[currentIconModel]"
       @select="setIcon"
     />
+    <!-- 表格相关弹窗框 -->
     <EditOperationColDialog :visible.sync="btnVisible" :current="currentBtnList" @select="setBtn" />
     <EditCommunColDialog
       :visible.sync="CommunVisible"
@@ -776,6 +928,13 @@
       :current="activeData"
       @select="setCommunCol"
     />
+    <!-- 表格相关结束 -->
+    <!-- 事件关联字段处理的弹窗框组件 -->
+    <configWordEventCommon
+      :visible.sync="eventHandleVisible"
+      :current="activeData"
+      :eventHandleItem="eventHandleItem"
+    ></configWordEventCommon>
   </div>
 </template>
 
@@ -784,8 +943,11 @@ import { isArray } from "util";
 import TreeNodeDialog from "@/views/index/TreeNodeDialog";
 import { isNumberStr } from "@/utils/index";
 import IconsDialog from "./IconsDialog";
-import EditOperationColDialog from "./EditOperationColDialog";
-import EditCommunColDialog from "./EditCommunColDialog";
+// 表格相关组件弹窗框
+import EditOperationColDialog from "./components/table/EditOperationColDialog";
+import EditCommunColDialog from "./components/table/EditCommunColDialog";
+//事件关联字段处理的弹窗框组件
+import configWordEventCommon from "./components/configWordEvent/Common";
 import {
   inputComponents,
   selectComponents,
@@ -812,18 +974,15 @@ export default {
     TreeNodeDialog,
     IconsDialog,
     EditOperationColDialog,
-    EditCommunColDialog
+    EditCommunColDialog,
+    configWordEventCommon
   },
-  props: ["showField", "activeData", "formConf"],
+  props: ["showField", "activeData", "formConf", "formData"],
   data() {
     return {
       currentTab: "field",
       currentNode: null,
       dialogVisible: false,
-      //表格
-      iconsVisible: false,
-      btnVisible: false, //编辑操作按钮
-      CommunVisible: false, //编辑普通列
       currentIconModel: null,
       dateTypeOptions: [
         {
@@ -914,8 +1073,12 @@ export default {
       // 分页
       layoutList: ["total", "sizes", "jumper"],
       tmpLayout: ["total", "sizes", "prev", "pager", "next", "jumper"],
+      // 分页结束
       pagerCount: 8,
-      //表格
+      //表格相关
+      iconsVisible: false,
+      btnVisible: false, //编辑操作按钮
+      CommunVisible: false, //编辑普通列
       colTypeList: [
         {
           label: "普通列",
@@ -935,7 +1098,13 @@ export default {
         }
       ],
       colType: "1",
-      currentColIndex: null
+      currentColIndex: null,
+      //表格结束
+      //关联字段事件处理开始
+      eventOptions: ["change"], //事件类型，单选值配了chang事件
+      currentSelectedWordFormId: "", //当前已选字段
+      eventHandleVisible: false, //是否开启模态框
+      eventHandleItem: {} //当前要编辑的对象
     };
   },
   computed: {
@@ -958,6 +1127,12 @@ export default {
         });
       // console.log(arr);
       return arr;
+    },
+    //展示所有已有的字段
+    associatedWordList() {
+      return this.formData.fields.filter(
+        o => o.__config__.formId != this.activeData.__config__.formId
+      );
     },
     documentLink() {
       return (
@@ -1005,15 +1180,16 @@ export default {
     }
   },
   watch: {
+    formData: {
+      handler(val) {
+        console.log(JSON.parse(JSON.stringify(val)));
+      },
+      deep: true,
+      immediate: true
+    },
     formConf: {
       handler(val) {
         saveFormConf(val);
-      },
-      deep: true
-    },
-    activeData: {
-      handler(val) {
-        console.log(val);
       },
       deep: true
     },
@@ -1028,6 +1204,9 @@ export default {
     }
   },
   methods: {
+    /**
+     * 表格相关
+     */
     //获取所选的按钮list，并组装
     setBtn(val) {
       let arr = JSON.parse(JSON.stringify(val)).map(item => {
@@ -1071,18 +1250,7 @@ export default {
       this.activeData.__config__.children[this.currentColIndex] = obj;
       this.end(); //强制更新
     },
-    addReg() {
-      this.activeData.__config__.regList.push({
-        pattern: "",
-        message: ""
-      });
-    },
-    addSelectItem() {
-      this.activeData.__slot__.options.push({
-        label: "",
-        value: ""
-      });
-    },
+    //表格列，配置
     initConfig() {
       return {
         __config__: {
@@ -1168,11 +1336,6 @@ export default {
           break;
       }
     },
-    addTreeItem() {
-      ++this.idGlobal;
-      this.dialogVisible = true;
-      this.currentNode = this.activeData.options;
-    },
     renderContent(h, { node, data, store }) {
       return (
         <div class="custom-tree-node">
@@ -1218,11 +1381,64 @@ export default {
       const index = children.findIndex(d => d.id === data.id);
       children.splice(index, 1);
     },
+    //表格结束
+    /**
+     * 
+     下拉框事件配置相关
+     */
+    //点击确定按钮
+    addAssociatedWord() {
+      //判断是否为空
+      if (this.currentSelectedWordFormId == "")
+        return this.$message.warning("请选择关联字段！");
+      //所选项是否已被选择过
+      let flag = this.activeData.__config__.associatedWord.some(
+        o => o.__config__.formId == this.currentSelectedWordFormId
+      );
+      if (flag) {
+        return this.$message.warning("请勿重复添加！");
+      } else {
+        // 获得选中的对象 arr
+        let arr = this.formData.fields.filter(
+          o => o.__config__.formId == this.currentSelectedWordFormId
+        );
+        this.activeData.__config__.associatedWord.push(arr[0]); //push到列表中，供渲染
+        this.currentSelectedWordFormId = ""; //清空所选
+        //初始化字段配置项
+        this.eventHandleItem = arr[0];
+        this.$set(this.eventHandleItem.__config__, "associatedWordConfig", {});
+        // console.log(JSON.parse(JSON.stringify(this.eventHandleItem)));
+      }
+    },
+    delAssociateWord(item, index) {
+      this.activeData.__config__.associatedWord.splice(index, 1);
+    },
+    addTreeItem() {
+      ++this.idGlobal;
+      this.dialogVisible = true;
+      this.currentNode = this.activeData.options;
+    },
+
+    addReg() {
+      this.activeData.__config__.regList.push({
+        pattern: "",
+        message: ""
+      });
+    },
+    addSelectItem() {
+      let label = this.activeData.__slot__.key;
+      let value = this.activeData.__slot__.value;
+      let obj = {};
+      obj[label] = "";
+      obj[value] = "";
+      console.log(obj);
+      this.activeData.__slot__.options.push(obj);
+    },
     addNode(data) {
       this.currentNode.push(data);
     },
     setOptionValue(item, val) {
-      item.value = isNumberStr(val) ? +val : val;
+      item[this.activeData.__slot__.value] = isNumberStr(val) ? +val : val;
     },
     setDefaultValue(val) {
       if (Array.isArray(val)) {
@@ -1301,11 +1517,18 @@ export default {
       this.iconsVisible = true;
       this.currentIconModel = model;
     },
+    // 打开表格配置模态框
     openOperationColDialog() {
       this.btnVisible = true;
     },
     openCommunColDialog() {
       this.CommunVisible = true;
+    },
+    // 结束
+    //打开字段配置模态框
+    openEventHandleVisibleDialog(item) {
+      this.eventHandleItem = item; //要编辑的对象
+      this.eventHandleVisible = true;
     },
     setIcon(val) {
       this.activeData[this.currentIconModel] = val;
@@ -1417,6 +1640,19 @@ export default {
     line-height: 32px;
     font-size: 15px;
     padding: 0 4px;
+  }
+
+  // 触发表达式相关
+  .expression {
+    .el-input .el-input__inner {
+      padding: 0 5px;
+      text-align: center;
+    }
+    .middle {
+      .el-input .el-input__inner {
+        // text-align: center;
+      }
+    }
   }
 }
 </style>

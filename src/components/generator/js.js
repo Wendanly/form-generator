@@ -4,8 +4,12 @@ import {
 import {
   exportDefault,
   titleCase,
-  deepClone
+  deepClone,
 } from '@/utils/index'
+import stroe from '@/store/index.js'
+import {
+  handlerChangeEvent
+} from '@/utils/commonFun.js'
 import ruleTrigger from './ruleTrigger'
 
 const units = {
@@ -27,7 +31,8 @@ const inheritAttrs = {
  * @param {String} type 生成类型，文件或弹窗等
  */
 export function makeUpJs(formConfig, type) {
-  confGlobal = formConfig = deepClone(formConfig)
+  confGlobal = formConfig = deepClone(formConfig);
+  stroe.commit('setConfGlobal', confGlobal); //存储
   console.log(confGlobal);
   const formDataList = []
   const ruleList = []
@@ -41,7 +46,7 @@ export function makeUpJs(formConfig, type) {
   formConfig.fields.forEach(el => {
     buildAttributes(el, formDataList, commonDataList, ruleList, optionsList, methodList, propsList, uploadVarList, created);
   })
-
+  //
   const script = buildexport(
     formConfig,
     type,
@@ -54,6 +59,7 @@ export function makeUpJs(formConfig, type) {
     methodList.join('\n'),
     created.join('\n')
   )
+  stroe.commit('setConfGlobal', {}); //清空
   confGlobal = null; //清空全局变量
   return script
 }
@@ -63,7 +69,7 @@ function buildAttributes(scheme, formDataList, commonDataList, ruleList, options
   const config = scheme.__config__
   const slot = scheme.__slot__
   buildData(scheme, formDataList); //构建formData
-  buildcommonData(scheme, commonDataList); //构建普通的data字段，非表单里的，如：分页、对话框的关闭、打开等字段
+  buildcommonData(scheme, commonDataList, formDataList); //构建普通的data字段，非表单里的，如：分页、对话框的关闭、打开等字段
   buildRules(scheme, ruleList); //构建校验规则
 
   // 特殊处理options属性
@@ -78,13 +84,16 @@ function buildAttributes(scheme, formDataList, commonDataList, ruleList, options
       callInCreated(methodName, created); //把该方法放到created里调用
     }
   }
-  //添加事件和方法
+  //定制化，添加事件和方法
   switch (config.tag) {
     case 'el-pagination':
       buildPaginationMethod([config.eventName.currentChange, config.eventName.sizeChange], methodList, scheme); //构建分页组件的事件,如：页面改变、每页展示条数改变
       break;
     case 'el-table':
       buildTableMethod([config.eventName.getTableData], methodList, scheme); //构建表格组件的方法,如：获取数据
+      break;
+    case 'el-select':
+      buildSelectMethod([config.eventName.changeName], methodList, scheme); //
       break;
 
     default:
@@ -169,12 +178,13 @@ function mixinMethod(type) {
 // 构建data 取出vModel,
 function buildData(scheme, formDataList) {
   const config = scheme.__config__
-  if (scheme.__vModel__ === undefined) return;
+  if (scheme.__vModel__ === undefined) return; //只要是列元素，都有此属性
   const defaultValue = JSON.stringify(config.defaultValue);
   // formData下面的字段不是每个都要传到后端的(不是每个都是可配的,如：表单下的tableData变量，他只是接受数据，但他得写在formData下面，因为表格被表单包裹着 )
-  if (['el-table'].indexOf(config.tag) > -1) {
+  if (['el-table'].indexOf(config.tag) > -1) { //定制化，把那些不需要传到后端但要放在这里
     formDataList.push(`${config.forData['tableData']}:${defaultValue},`); //
   } else {
+    //其余的直接放在对应的字段中
     formDataList.push(`${scheme.__vModel__}: ${defaultValue},`);
   }
 
@@ -225,7 +235,7 @@ function buildProps(scheme, propsList) {
   propsList.push(str)
 }
 // 构建普通data数据，如：打开、关闭模态框的标志位、分页组件必须参数等
-function buildcommonData(scheme, commonDataList) {
+function buildcommonData(scheme, commonDataList, formDataList) {
   let tag = scheme.__config__.tag; //通过标签来定制字段
   //分页组件 ,scheme.__config__.forData 这是因为配置项的顶层没有这些参数，在里面写的
   if (scheme.__config__.forData) {
@@ -235,16 +245,44 @@ function buildcommonData(scheme, commonDataList) {
         commonDataList.push(`${scheme.__config__.forData.pageKey}: ${scheme.__config__.forData.currentPage},`);
         commonDataList.push(`${scheme.__config__.forData.totalKey}: ${scheme.__config__.forData.total},`);
         break;
+      case 'el-input':
+
+        break;
       default:
         break;
     }
-
   }
   //表格组件
   if (tag == 'el-table') {
     commonDataList.push(`${scheme['v-loading'] }:false,`); //表格加载效果标志位
   }
-
+  //受控关联字段处理,即 该组件是否受某个下拉框控制
+  let getAwConfig = handlerChangeEvent(scheme, '', 'getAwConfig'); //获取此组件受影响的属性，如：readonly 等
+  if (JSON.stringify(getAwConfig) != '{}') {
+    for (let i in getAwConfig) {
+      //受控关联字段初始值处理
+      //组件配置根目录中是否有初始值
+      if (i in scheme) {
+        commonDataList.push(`${getAwConfig[i]}: ${scheme[i]},`);
+      } else {
+        if (!['editVModel'].includes(i)) {
+          //排除输入框，因为输入框的值 __vModel__在上面已经处理好了，
+          commonDataList.push(`${getAwConfig[i]}: false,`); //其他初始值则一律为非
+        }
+      }
+      //受控关联字段目标值处理，把目标值存到changeEventTargetConfig里，即 下拉框选择某一项时把目标值赋值给某个组件
+      //如果是修改默认值，则要排除，用修改后的值
+      //由于commonDataList里的变量本来是放在data根部的，但有的需要用对象包一层，所以按需加了标记，此标记最后要剔除到
+      if (['editVModel'].includes(i)) {
+        let VModelArr = getAwConfig[i].split('@@');
+        commonDataList.push(`changeEventTargetConfig.'${VModelArr[0]}': '${VModelArr[1]}@@${VModelArr[2]}',`);
+      } else {
+        //其他则一律为真
+        commonDataList.push(`changeEventTargetConfig.${getAwConfig[i]}: true,`);
+      }
+    }
+  }
+  console.log(commonDataList);
 }
 
 // el-upload的BeforeUpload
@@ -321,6 +359,7 @@ function buildTableMethod(methodNameList, methodList, scheme) {
   const config = scheme.__config__; //取出表单配置项
   let totalKey = '';
   let totalKeyExpression = '';
+  //遍历组件，判断是否有分页组件
   confGlobal.fields.filter(item => {
     item.__config__.tag == 'el-pagination' ? totalKey = item.__config__.forData.totalKey : '';
   });
@@ -343,9 +382,86 @@ function buildTableMethod(methodNameList, methodList, scheme) {
   methodList.push(str); //往已有的方法里添加
 
 }
+//定义下拉框组件所涉及的方法或事件  
+function buildSelectMethod(methodNameList, methodList, scheme) {
+  let slot = scheme.__slot__;
+  //这里要通过formId找出该下拉框控制的其他组件，这里这么费事是因为下拉框控制的可能是输入框的值，即 点击某个下拉框选项把预先设置好的值赋值给输入框，
+  //此时就不能像其他布尔值那样弄个随机变量了，随机变量是控制组件的显影，在模板中也有这个变量。
+  let vModelName = {};
+  confGlobal.fields.map(o => {
+    scheme.__config__.associatedWord.map(m => {
+      let editVModel = m.__config__.associatedWordConfig.editVModel;
+      if (editVModel && (editVModel.split('@@')[0] == o.__config__.formId)) {
+        vModelName[o.__config__.formId] = o.__vModel__; //找到该下拉框控制其他组件的字段名
+      }
+    })
+  });
+  console.log(vModelName);
+  const str = `${methodNameList[0]}(val) {
+    // change事件
+    let aWconfig = this.changeEventTargetConfig;
+    if('${slot.equal}' == '全部' ||  '${slot.result}' == '' || (val ${slot.equal} ${slot.result})){
+      for (let i in  aWconfig) {
+        if (String(aWconfig[i]).indexOf('@@') > -1) {
+          this.${confGlobal.formModel}[i] = aWconfig[i].split('@@')[1];
+        }else{
+          this[i] = aWconfig[i];
+        }
+        
+      }
+    }else {
+      //选项不满足时，则恢复，但这里有个问题，对于输入框的恢复无法做到，因为已经被修改了，此时不知道它之前的值，所以只能清空
+      for (let i in  aWconfig) {
+        if (String(aWconfig[i]).indexOf('@@') > -1) {
+          this.${confGlobal.formModel}[i] = '';
+        }else{
+          this[i] = false;
+        }
+       
+      }
+    }
+  },`
+  methodList.push(str); //往已有的方法里添加
+
+}
 
 // js整体拼接
+/**
+ * 
+ * @param {*} conf 全量的:组件属性和表单属性
+ * @param {*} type 页面类型
+ * @param {*} formData 表单数据
+ * @param {*} commonDataList 放在data根目录的数据，如：page total等字段
+ * @param {*} rules 表单校验规则
+ * @param {*} selectOptions 下拉选项
+ * @param {*} uploadVar 文件上传相关
+ * @param {*} props 组件传过来的数据
+ * @param {*} methods 方法list
+ * @param {*} created 
+ */
 function buildexport(conf, type, formData, commonDataList, rules, selectOptions, uploadVar, props, methods, created) {
+
+  let changeEventTargetConfig = []; //下拉框事件配置项相关
+  let commonData = [];
+  commonDataList.split(',').map(o => {
+    //这里专门处理多级对象，进行判断
+    if (o.indexOf('changeEventTargetConfig') > -1) {
+      let arr = o.split('.');
+      changeEventTargetConfig.push(arr[1]);
+    } else {
+      //根目录的在这里
+      commonData.push(o);
+    }
+  });
+  let rootCommonData = `
+  //下拉框事件触发时目标配置项,放在changeEventTargetConfig里
+  changeEventTargetConfig: {
+  ${changeEventTargetConfig}
+  },
+  //普通属性，放在根目录的，如，模态框关闭的标志位
+  ${commonData}
+  `
+  console.log(rootCommonData);
   const str = `${exportDefault}{
   ${inheritAttrs[type]}
   components: {},
@@ -361,7 +477,7 @@ function buildexport(conf, type, formData, commonDataList, rules, selectOptions,
       ${uploadVar}
       ${selectOptions}
       ${props}
-      ${commonDataList}
+      ${rootCommonData}
     }
   },
   computed: {},

@@ -91,6 +91,7 @@
       :active-data="activeData"
       :form-conf="formConf"
       :show-field="!!drawingList.length"
+      :form-data='getFormData'
       @tag-change="tagChange"
       @fetch-data="fetchData"
     />
@@ -221,9 +222,15 @@ export default {
       ]
     };
   },
-  computed: {},
+  computed: {
+     getFormData(){
+       this.AssembleFormData();
+       console.log(this.formData);
+        return this.formData;
+     },
+  },
   watch: {
-    // 如果activeData.__config__.label 与activeId 连续被更改，则他们在watch里的响应是按照他们在watch里的排序来的，而不是按照他们被更改时的顺序确定的
+    // 如果activeData.__config__.label 与activeId 连续被更改，则他们在watch里的响应顺序是按照他们在watch里的排序来的，而不是按照他们被更改时的顺序确定的
     //activeData对象内容改变，label会被触发，但此时不能改变placeholder的值，因为此时没有在右侧配置面版中改变label的值,所以要加判断过滤掉此种情况
     // 实时改变placeholder的值
     "activeData.__config__.label"(val, oldVal) {
@@ -264,7 +271,8 @@ export default {
         console.log(val);
       },
       deep: true
-    }
+    },
+   
   },
   mounted() {
     console.log(tempActiveData);
@@ -412,6 +420,7 @@ export default {
     },
     //合并参数
     AssembleFormData() {
+      console.log(65);
       this.formData = {
         fields: deepClone(this.drawingList),
         ...this.formConf

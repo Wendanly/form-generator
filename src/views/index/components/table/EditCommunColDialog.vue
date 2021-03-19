@@ -138,8 +138,8 @@ export default {
       this.hasChild = data.children && data.children.length ? true : false;
     },
     renderContent(h, { node, data, store }) {
-      // console.log(data);
-      let disbaled = node.parent.id == 0 ? true : false;
+      console.log(data);
+      let disbaled = node.parent.parent == null ? true : false;
       return (
         <span class="custom-tree-node">
           <span style="display: inline-block;width: 100px;">{node.label}</span>

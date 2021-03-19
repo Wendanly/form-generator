@@ -46,6 +46,7 @@ const layouts = {
     //以下代码是react编写render函数的方式，渲染不同的组件
     return (
       <el-col
+        v-show={config.hideComponent == false ? true : false}
         span={config.span}
         class={className}
         nativeOnClick={event => {
@@ -72,7 +73,7 @@ const layouts = {
       </el-col>
     );
   },
-  //rowFormItem类型目前仅存在于行容器中
+  //rowFormItem类型目前仅存在于行容器中，他没有采用el-col el-form-item包裹
   rowFormItemWrap(h, currentItem, index, list) {
     const { activeItem } = this.$listeners;
     const config = currentItem.__config__;

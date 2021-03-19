@@ -1,6 +1,9 @@
 /* eslint-disable no-nested-ternary */
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable guard-for-in */
+let confGlobal = null;
+
+
 /**
  * num 小于0，左缩进num*2个空格； 大于0，右缩进num*2个空格。
  * @param {string} str 代码
@@ -41,9 +44,7 @@ export function camelCase(str) {
 export function isNumberStr(str) {
   return /^[+-]?(0|([1-9]\d*))(\.\d+)?$/g.test(str);
 }
-
 export const exportDefault = 'export default';
-
 export const beautifierConf = {
   html: {
     indent_size: '2',

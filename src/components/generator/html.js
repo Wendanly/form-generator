@@ -1,9 +1,9 @@
 /* eslint-disable max-len */
 import ruleTrigger from './ruleTrigger'
 import {
-  sortRule
+  handlerChangeEvent
 } from '@/utils/commonFun.js'
-
+import stroe from '@/store/index.js'
 let confGlobal
 let someSpanIsNot24
 
@@ -154,6 +154,8 @@ function getColAttrbute(item) {
   };
 }
 
+
+
 const layouts = {
   colFormItem(scheme) {
     //拼装formItem
@@ -168,21 +170,25 @@ const layouts = {
       label = ''
     }
     const required = !ruleTrigger[config.tag] && config.required ? 'required' : '';
-    const tagDom = tags[config.tag] ? tags[config.tag](scheme) : null
-    let str = `<el-form-item ${labelWidth} ${label}  prop="${scheme.__vModel__}" ${required}>
+    let hideComponent = config.hideComponent ? false : true;
+    let keyName = handlerChangeEvent(scheme, 'hideComponent');
+    keyName ? hideComponent = keyName : '';
+    const tagDom = tags[config.tag] ? tags[config.tag](scheme) : null; //渲染每个组件
+    let str = `<el-form-item ${labelWidth} ${label} v-show='${hideComponent}'  prop="${scheme.__vModel__}" ${required}>
         ${tagDom}
       </el-form-item>`
     str = colWrapper(scheme, str);
     return str
   },
-  rowFormItem(scheme) {
+  rowFormItemWrap(scheme) {
     const config = scheme.__config__
     const type = scheme.type === 'default' ? '' : `type="${scheme.type}"`
     const justify = scheme.type === 'default' ? '' : `justify="${scheme.justify}"`
     const align = scheme.type === 'default' ? '' : `align="${scheme.align}"`
     const gutter = scheme.gutter ? `:gutter="${scheme.gutter}"` : ''
+    const hideComponent = config.hideComponent ? false : true;
     const children = config.children.map(el => layouts[el.__config__.layout](el))
-    let str = `<el-row ${type} ${justify} ${align} ${gutter}>
+    let str = `<el-row ${type} ${justify}  ${hideComponent} ${align} ${gutter}>
       ${children.join('\n')}
     </el-row>`
     str = colWrapper(scheme, str)
@@ -208,19 +214,22 @@ const tags = {
     return `<${tag} ${type} ${icon} ${round} ${size} ${plain} ${disabled} ${circle}>${child}</${tag}>`
   },
   'el-input': el => {
-    const {
+    let {
       tag,
       disabled,
       vModel,
       clearable,
       placeholder,
       width,
-      size
+      size,
     } = attrBuilder(el);
+
+
+
     //以下是特有的属性
     const maxlength = el.maxlength ? `:maxlength="${el.maxlength}"` : ''
     const showWordLimit = el['show-word-limit'] ? 'show-word-limit' : ''
-    const readonly = el.readonly ? 'readonly' : ''
+    let readonly = el.readonly ? 'readonly' : ''
     const prefixIcon = el['prefix-icon'] ? `prefix-icon='${el['prefix-icon']}'` : ''
     const suffixIcon = el['suffix-icon'] ? `suffix-icon='${el['suffix-icon']}'` : ''
     const showPassword = el['show-password'] ? 'show-password' : ''
@@ -228,6 +237,12 @@ const tags = {
     const autosize = el.autosize && el.autosize.minRows ?
       `:autosize="{minRows: ${el.autosize.minRows}, maxRows: ${el.autosize.maxRows}}"` :
       '';
+    //是否有受控属性
+    let readonlyName = handlerChangeEvent(el, 'readonly');
+    readonlyName ? readonly = `:readonly='${readonlyName}'` : '';
+    let disabledName = handlerChangeEvent(el, 'disabled');
+    disabledName ? disabled = `:disabled='${disabledName}'` : '';
+
     let child = buildElInputChild(el); //获取插槽内容
 
     if (child) child = `\n${child}\n` // 换行
@@ -363,11 +378,13 @@ const tags = {
       size
     } = attrBuilder(el)
     const filterable = el.filterable ? 'filterable' : ''
-    const multiple = el.multiple ? 'multiple' : ''
+    const multiple = el.multiple ? 'multiple' : '';
+    //为真，说明此下拉组件关联了某些组件
+    let changeEvent = el.__config__.associatedWord.length ? `@change='${el.__config__.eventName.changeName}(${confGlobal.formModel}.${el.__vModel__})'` : '';
     let child = buildElSelectChild(el)
 
     if (child) child = `\n${child}\n` // 换行
-    return `<${tag} ${vModel} ${placeholder}   ${size} ${disabled} ${multiple} ${filterable} ${clearable} ${width}>${child}</${tag}>`
+    return `<${tag} ${vModel} ${placeholder} ${changeEvent}   ${size} ${disabled} ${multiple} ${filterable} ${clearable} ${width}>${child}</${tag}>`
   },
   'el-radio-group': el => {
     const {
@@ -546,7 +563,8 @@ function attrBuilder(el) {
     size: el.size ? `size="${el.size}"` : '',
     placeholder: el.placeholder ? `placeholder="${el.placeholder}"` : '',
     width: el.style && el.style.width ? ':style="{width: \'100%\'}"' : '',
-    disabled: el.disabled ? ':disabled=\'true\'' : ''
+    disabled: el.disabled ? ':disabled=\'true\'' : '',
+    hideComponent: el.__config__.hideComponent ? 'v-show=\'true\'' : '',
   }
 }
 
@@ -578,7 +596,9 @@ function buildElSelectChild(scheme) {
   const children = []
   const slot = scheme.__slot__
   if (slot && slot.options && slot.options.length) {
-    children.push(`<el-option v-for="(item, index) in ${scheme.__vModel__}Options" :key="index" :label="item.label" :value="item.value" :disabled="item.disabled"></el-option>`)
+    let label = slot.key;
+    let value = slot.value;
+    children.push(`<el-option v-for="(item, index) in ${scheme.__vModel__}Options" :key="index" :label="item.${label}" :value="item.${value}" :disabled="item.disabled"></el-option>`)
   }
   return children.join('\n')
 }
@@ -628,12 +648,14 @@ export function makeUpHtml(formConfig, type) {
   console.log(formConfig);
   const htmlList = []
   confGlobal = formConfig
+  stroe.commit('setConfGlobal', confGlobal); //存储
+  // sessionStorage.setItem('confGlobal', JSON.stringify(confGlobal)); //存起来
   // 判断布局是否都沾满了24个栅格，以备后续简化代码结构
   someSpanIsNot24 = formConfig.fields.some(item => item.__config__.span !== 24)
   // 遍历渲染每个组件成html
   formConfig.fields.forEach(el => {
     htmlList.push(layouts[el.__config__.layout](el))
-  })
+  });
   const htmlStr = htmlList.join('\n'); //每个元素之间换行
   // 将组件代码放进form标签
   let temp = buildFormTemplate(formConfig, htmlStr, type)
@@ -641,6 +663,8 @@ export function makeUpHtml(formConfig, type) {
   if (type === 'dialog') {
     temp = dialogWrapper(temp)
   }
-  confGlobal = null
+  stroe.commit('setConfGlobal', {}); //清空
+  console.log(stroe.state);
+  confGlobal = null; //清空
   return temp
 }

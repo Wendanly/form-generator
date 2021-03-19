@@ -19,6 +19,7 @@ export const inputComponents = [{
       label: '单行文本',
       labelWidth: null,
       showLabel: true,
+      hideComponent: false, //是否影藏组件
       changeTag: true,
       tag: 'el-input',
       tagIcon: 'input',
@@ -54,6 +55,7 @@ export const inputComponents = [{
       label: '多行文本',
       labelWidth: null,
       showLabel: true,
+      hideComponent: false, //是否影藏组件
       tag: 'el-input',
       tagIcon: 'textarea',
       defaultValue: undefined,
@@ -82,6 +84,7 @@ export const inputComponents = [{
     __config__: {
       label: '密码',
       showLabel: true,
+      hideComponent: false, //是否影藏组件
       labelWidth: null,
       changeTag: true,
       tag: 'el-input',
@@ -115,6 +118,7 @@ export const inputComponents = [{
     __config__: {
       label: '计数器',
       showLabel: true,
+      hideComponent: false, //是否影藏组件
       changeTag: true,
       labelWidth: null,
       tag: 'el-input-number',
@@ -140,6 +144,7 @@ export const inputComponents = [{
     __config__: {
       label: '编辑器',
       showLabel: true,
+      hideComponent: false, //是否影藏组件
       changeTag: true,
       labelWidth: null,
       tag: 'tinymce',
@@ -162,10 +167,24 @@ export const selectComponents = [{
     __config__: {
       label: '下拉选择',
       showLabel: true,
+      hideComponent: false, //是否影藏组件
       labelWidth: null,
       tag: 'el-select',
       tagIcon: 'select',
       layout: 'colFormItem',
+      dataType: 'static',
+      //取数配置
+      method: 'get',
+      url: 'https://www.fastmock.site/mock/f8d7a54fb1e60561e2f720d5a810009d/fg/tableData',
+      dataPath: 'list', //数据位置，
+      eventType: 'change', //默认是change事件类型,
+      eventName: {
+        //代码里控制是否要添加事件名称
+      },
+      associatedWord: [], //关联的字段list
+      forData: {
+        //用于在vue生命周期中data里展示的字段,这里要根据associatedWord里的配置项动态插入需要的变量
+      },
       span: 24,
       required: true,
       regList: [],
@@ -173,6 +192,11 @@ export const selectComponents = [{
       document: 'https://element.eleme.cn/#/zh-CN/component/select'
     },
     __slot__: {
+      key: 'label', //键字段名，默认label
+      value: 'value', //值字段名，默认value
+      //触发选项表达式 ,
+      equal: '==', //可选值为== 或 != ，默认值为==
+      result: '', //不等于或者等于的具体值，配置时输入,如：value == 'C0001'
       options: [{
         label: '选项一',
         value: 1
@@ -199,12 +223,13 @@ export const selectComponents = [{
       dataPath: 'list', //规定后端返回的key名称，如此处 dataPath: 'list'，则后端返回应为：list:[{name:'wzf'}]
       dataConsumer: 'options', //规定本地数据接收的数据列表key值，与下面的options 要一致
       showLabel: true,
+      hideComponent: false, //是否影藏组件
       labelWidth: null,
       tag: 'el-cascader',
       tagIcon: 'cascader',
       layout: 'colFormItem',
       defaultValue: [],
-      dataType: 'dynamic',
+      dataType: 'static',
       span: 24,
       required: true,
       regList: [],
@@ -245,7 +270,13 @@ export const selectComponents = [{
       label: '单选框组',
       labelWidth: null,
       showLabel: true,
+      hideComponent: false, //是否影藏组件
       tag: 'el-radio-group',
+      dataType: 'static',
+      //取数配置
+      method: 'get',
+      url: 'https://www.fastmock.site/mock/f8d7a54fb1e60561e2f720d5a810009d/fg/tableData',
+      dataPath: 'list', //数据位置，
       tagIcon: 'radio',
       changeTag: true,
       defaultValue: undefined,
@@ -275,9 +306,15 @@ export const selectComponents = [{
       label: '多选框组',
       tag: 'el-checkbox-group',
       tagIcon: 'checkbox',
+      dataType: 'static',
+      //取数配置
+      method: 'get',
+      url: 'https://www.fastmock.site/mock/f8d7a54fb1e60561e2f720d5a810009d/fg/tableData',
+      dataPath: 'list', //数据位置，
       defaultValue: [],
       span: 24,
       showLabel: true,
+      hideComponent: false, //是否影藏组件
       labelWidth: null,
       layout: 'colFormItem',
       optionType: 'default', //该组件是否显示尺寸大小选项不能像其他组件那样通过tag来判断，因为当optionType: 'default'时无大小一说，只有当optionType: 'button'时才有大小一说，所以要通过optionType来判断该是否可以调整大小
@@ -310,6 +347,7 @@ export const selectComponents = [{
       defaultValue: false,
       span: 24,
       showLabel: true,
+      hideComponent: false, //是否影藏组件
       labelWidth: null,
       layout: 'colFormItem',
       required: true,
@@ -334,6 +372,7 @@ export const selectComponents = [{
       defaultValue: null,
       span: 24,
       showLabel: true,
+      hideComponent: false, //是否影藏组件
       layout: 'colFormItem',
       labelWidth: null,
       required: true,
@@ -356,6 +395,7 @@ export const selectComponents = [{
       defaultValue: null,
       span: 24,
       showLabel: true,
+      hideComponent: false, //是否影藏组件
       layout: 'colFormItem',
       labelWidth: null,
       required: true,
@@ -383,6 +423,7 @@ export const selectComponents = [{
       tagIcon: 'time-range',
       span: 24,
       showLabel: true,
+      hideComponent: false, //是否影藏组件
       labelWidth: null,
       layout: 'colFormItem',
       defaultValue: null,
@@ -411,6 +452,7 @@ export const selectComponents = [{
       tagIcon: 'date',
       defaultValue: null,
       showLabel: true,
+      hideComponent: false, //是否影藏组件
       labelWidth: null,
       span: 24,
       layout: 'colFormItem',
@@ -439,6 +481,7 @@ export const selectComponents = [{
       defaultValue: null,
       span: 24,
       showLabel: true,
+      hideComponent: false, //是否影藏组件
       labelWidth: null,
       required: true,
       layout: 'colFormItem',
@@ -468,6 +511,7 @@ export const selectComponents = [{
       defaultValue: 0,
       span: 24,
       showLabel: true,
+      hideComponent: false, //是否影藏组件
       labelWidth: null,
       layout: 'colFormItem',
       required: true,
@@ -490,6 +534,7 @@ export const selectComponents = [{
       span: 24,
       defaultValue: null,
       showLabel: true,
+      hideComponent: false, //是否影藏组件
       labelWidth: null,
       layout: 'colFormItem',
       required: true,
@@ -510,6 +555,7 @@ export const selectComponents = [{
       layout: 'colFormItem',
       defaultValue: null,
       showLabel: true,
+      hideComponent: false, //是否影藏组件
       labelWidth: null,
       required: true,
       span: 24,
@@ -538,6 +584,7 @@ export const selectComponents = [{
 export const layoutComponents = [{
     __config__: {
       layout: 'rowFormItemWrap',
+      hideComponent: false, //是否影藏组件
       tagIcon: 'row',
       label: '行容器',
       layoutTree: true,
@@ -551,6 +598,7 @@ export const layoutComponents = [{
     __config__: {
       label: '按钮',
       showLabel: false,
+      hideComponent: false, //是否影藏组件
       changeTag: true,
       labelWidth: null,
       tag: 'el-button',
@@ -581,10 +629,11 @@ export const layoutComponents = [{
       renderKey: 1595761764203,
       componentName: 'row101',
       showLabel: false,
+      hideComponent: false, //是否影藏组件
       changeTag: true,
       labelWidth: null,
-      label: '表格[开发中]',
-      dataType: 'dynamic',
+      label: '表格',
+      dataType: 'static',
       //取数配置
       method: 'get',
       url: 'https://www.fastmock.site/mock/f8d7a54fb1e60561e2f720d5a810009d/fg/tableData',
@@ -593,11 +642,11 @@ export const layoutComponents = [{
       defaultValue: [], //表格数据，默认为空
       forData: {
         //用于在vue生命周期中data里展示的字段
-        tableData: 'tableData' + Math.floor(Math.random() * 10), //表格list名称
+        tableData: 'tableData' + Math.floor(Math.random() * 20), //表格list名称
       },
       //添加方法:获取表格数据、单选、多选
       eventName: {
-        getTableData: 'getTableData' + Math.floor(Math.random() * 10), //获取表格数据方法名
+        getTableData: 'getTableData' + Math.floor(Math.random() * 20), //获取表格数据方法名
       },
       children: [{
           __config__: {
@@ -655,7 +704,7 @@ export const layoutComponents = [{
                 tag: 'el-button',
                 tagIcon: 'button',
                 layout: 'raw',
-                eventName: 'eventName' + Math.floor(Math.random() * 10),
+                eventName: 'eventName' + Math.floor(Math.random() * 20),
                 renderKey: 1595779809901
               },
               __slot__: {
@@ -684,8 +733,8 @@ export const layoutComponents = [{
     justify: 'start',
     align: 'top',
     style: "width: 100%",
-    'v-loading': "table" + Math.floor(Math.random() * 10) + 'Loading',
-    ref: "table" + Math.floor(Math.random() * 10),
+    'v-loading': "table" + Math.floor(Math.random() * 20) + 'Loading',
+    ref: "table" + Math.floor(Math.random() * 20),
   },
   {
     __config__: {
@@ -693,6 +742,9 @@ export const layoutComponents = [{
       changeTag: true,
       tag: 'el-pagination',
       tagIcon: 'pagination',
+      showLabel: false, //
+      hideComponent: false, //是否影藏组件
+      labelWidth: null, //
       span: 24,
       layout: 'colFormItem', //
       document: 'https://element.eleme.cn/#/zh-CN/component/pagination',
@@ -706,8 +758,8 @@ export const layoutComponents = [{
         totalKey: 'total', //总条数 key名称
       },
       eventName: {
-        sizeChange: 'sizeChange' + Math.floor(Math.random() * 10), //改变每页条数的事件名称
-        currentChange: 'currentChange' + Math.floor(Math.random() * 10), //改变页码的事件名称
+        sizeChange: 'sizeChange' + Math.floor(Math.random() * 20), //改变每页条数的事件名称
+        currentChange: 'currentChange' + Math.floor(Math.random() * 20), //改变页码的事件名称
       },
     },
     small: false, //小型分页，间距会紧凑一点
@@ -718,9 +770,5 @@ export const layoutComponents = [{
     'pager-count': 7, //页码按钮的数量，当总页数超过该值时会折叠,可选值：大于等于 5 且小于等于 21 的奇数；默认值： 7
     'current-page': 1, //当前页码，支持 .sync 修饰符
     layout: "sizes, prev, pager, next, jumper",
-    style: {
-      'text-align': 'right'
-    },
-
   },
 ]
