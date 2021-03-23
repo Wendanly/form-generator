@@ -122,6 +122,7 @@ export default {
         "associatedWordConfig",
         params
       );
+      
       // console.log(JSON.parse(JSON.stringify(this.eventHandleItem)));
 
       // for (let i in this.ruleForm) {
