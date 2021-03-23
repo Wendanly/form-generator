@@ -98,7 +98,6 @@ export default {
       function getRandom() {
         return Math.floor(Math.random() * 1000);
       }
-
       let params = {};
       for (let i in ruleForm) {
         if (["editVModel"].includes(i)) {
