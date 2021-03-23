@@ -265,9 +265,19 @@ function buildcommonData(scheme, commonDataList, formDataList) {
       if (i in scheme) {
         commonDataList.push(`${getAwConfig[i]}: ${scheme[i]},`);
       } else {
+        //排除输入框， 因为输入框的值 __vModel__在上面已经处理好了，
         if (!['editVModel'].includes(i)) {
-          //排除输入框，因为输入框的值 __vModel__在上面已经处理好了，
-          commonDataList.push(`${getAwConfig[i]}: false,`); //其他初始值则一律为非
+          //获取非根目录的初始值
+          if (['hideComponent'].includes(i)) {
+            //如果配置项中设置了true,则说明不显示，所以目标值要设置成fasle
+            if (scheme.__config__.hideComponent == true) {
+              commonDataList.push(`${getAwConfig[i]}: false,`);
+            } else {
+              commonDataList.push(`${getAwConfig[i]}: true,`); //排除取反的,如隐藏功能，此时要显示true，结果为v-show='true',即初始时是显示的
+            }
+          } else {
+            commonDataList.push(`${getAwConfig[i]}: false,`); //其他初始值则一律为非
+          }
         }
       }
       //受控关联字段目标值处理，把目标值存到changeEventTargetConfig里，即 下拉框选择某一项时把目标值赋值给某个组件
@@ -277,8 +287,13 @@ function buildcommonData(scheme, commonDataList, formDataList) {
         let VModelArr = getAwConfig[i].split('@@');
         commonDataList.push(`changeEventTargetConfig.'${VModelArr[0]}': '${VModelArr[1]}@@${VModelArr[2]}',`);
       } else {
-        //其他则一律为真
-        commonDataList.push(`changeEventTargetConfig.${getAwConfig[i]}: true,`);
+        //其他要分情况判断
+        //排除输入框， 因为输入框的值 __vModel__在上面已经处理好了，
+        if (['hideComponent'].includes(i)) {
+          commonDataList.push(`changeEventTargetConfig.${getAwConfig[i]}: false,`); //排除取反的,如隐藏功能，此时要显示false，结果为v-show='false',即目标值是隐藏的
+        } else {
+          commonDataList.push(`changeEventTargetConfig.${getAwConfig[i]}: true,`); //其他初始值则一律为真
+        }
       }
     }
   }
@@ -364,6 +379,7 @@ function buildTableMethod(methodNameList, methodList, scheme) {
     item.__config__.tag == 'el-pagination' ? totalKey = item.__config__.forData.totalKey : '';
   });
   totalKey ? totalKeyExpression = `this.${totalKey}=data.${totalKey}` : '';
+
   //获取表格数据
   const str = `${methodNameList[0]}() {
     // 注意：this.$axios是通过Vue.prototype.$axios = axios挂载产生的
@@ -384,26 +400,22 @@ function buildTableMethod(methodNameList, methodList, scheme) {
 //定义下拉框组件所涉及的方法或事件  
 function buildSelectMethod(methodNameList, methodList, scheme) {
   let slot = scheme.__slot__;
-  //这里要通过formId找出该下拉框控制的其他组件，这里这么费事是因为下拉框控制的可能是输入框的值，即 点击某个下拉框选项把预先设置好的值赋值给输入框，
-  //此时就不能像其他布尔值那样弄个随机变量了，随机变量是控制组件的显影，在模板中也有这个变量。
-  let vModelName = {};
-  confGlobal.fields.map(o => {
-    scheme.__config__.associatedWord.map(m => {
-      let editVModel = m.__config__.associatedWordConfig.editVModel;
-      if (editVModel && (editVModel.split('@@')[0] == o.__config__.formId)) {
-        vModelName[o.__config__.formId] = o.__vModel__; //找到该下拉框控制其他组件的字段名
-      }
-    })
-  });
-  console.log(vModelName);
+  let equal = slot.equal != 'all' ? slot.equal : '';
+  let result = '';
+  if (slot.result != '') {
+    result = slot.result
+  } else {
+    equal = '';
+  }
   const str = `${methodNameList[0]}(val) {
     // change事件
     let aWconfig = this.changeEventTargetConfig;
-    if('${slot.equal}' == '全部' ||  '${slot.result}' == '' || (val ${slot.equal} ${slot.result})){
+    if('${slot.equal}' == 'all' ||  '${slot.result}' == '' || (val ${equal} ${result})){
       for (let i in  aWconfig) {
         if (String(aWconfig[i]).indexOf('@@') > -1) {
           this.${confGlobal.formModel}[i] = aWconfig[i].split('@@')[1];
         }else{
+          //目标值，是啥就是啥，不用再转了，因为上面设置时已经转好了
           this[i] = aWconfig[i];
         }
         
@@ -414,7 +426,12 @@ function buildSelectMethod(methodNameList, methodList, scheme) {
         if (String(aWconfig[i]).indexOf('@@') > -1) {
           this.${confGlobal.formModel}[i] = '';
         }else{
-          this[i] = false;
+          //排除取反的
+          if (i.indexOf('hideComponent') > -1) {
+            this[i] = true;
+          } else {
+            this[i] = false;
+          }
         }
        
       }

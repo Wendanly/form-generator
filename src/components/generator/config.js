@@ -229,7 +229,7 @@ export const selectComponents = [{
       tagIcon: 'cascader',
       layout: 'colFormItem',
       defaultValue: [],
-      dataType: 'static',
+      dataType: 'dynamic',
       span: 24,
       required: true,
       regList: [],
@@ -601,6 +601,12 @@ export const layoutComponents = [{
       hideComponent: false, //是否影藏组件
       changeTag: true,
       labelWidth: null,
+      eventType: 'click', //按钮默认是click事件类型,
+      //取数配置
+      method: 'get',
+      url: 'https://www.fastmock.site/mock/f8d7a54fb1e60561e2f720d5a810009d/fg/tableData',
+      dataPath: 'list', //数据位置，
+      //
       tag: 'el-button',
       tagIcon: 'button',
       span: 24,
@@ -633,7 +639,7 @@ export const layoutComponents = [{
       changeTag: true,
       labelWidth: null,
       label: '表格',
-      dataType: 'static',
+      dataType: 'dynamic',
       //取数配置
       method: 'get',
       url: 'https://www.fastmock.site/mock/f8d7a54fb1e60561e2f720d5a810009d/fg/tableData',

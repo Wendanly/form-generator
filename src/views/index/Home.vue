@@ -3,14 +3,15 @@
     <div class="left-board">
       <div class="logo-wrapper">
         <div class="logo">
-          <img :src="logo" alt="logo" /> Form Generator
+          新大新
+          <!-- <img :src="logo" alt="logo" /> Form Generator
           <a
             class="github"
             href="https://github.com/JakHuang/form-generator"
             target="_blank"
           >
             <img src="https://github.githubassets.com/pinned-octocat.svg" alt />
-          </a>
+          </a>-->
         </div>
       </div>
       <el-scrollbar class="left-scrollbar">
@@ -91,7 +92,7 @@
       :active-data="activeData"
       :form-conf="formConf"
       :show-field="!!drawingList.length"
-      :form-data='getFormData'
+      :form-data="getFormData"
       @tag-change="tagChange"
       @fetch-data="fetchData"
     />
@@ -223,11 +224,11 @@ export default {
     };
   },
   computed: {
-     getFormData(){
-       this.AssembleFormData();
-       console.log(this.formData);
-        return this.formData;
-     },
+    getFormData() {
+      this.AssembleFormData();
+      console.log(this.formData);
+      return this.formData;
+    }
   },
   watch: {
     // 如果activeData.__config__.label 与activeId 连续被更改，则他们在watch里的响应顺序是按照他们在watch里的排序来的，而不是按照他们被更改时的顺序确定的
@@ -271,8 +272,7 @@ export default {
         console.log(val);
       },
       deep: true
-    },
-   
+    }
   },
   mounted() {
     console.log(tempActiveData);

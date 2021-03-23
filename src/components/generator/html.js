@@ -45,13 +45,14 @@ function buildFormTemplate(scheme, child, type) {
   const disabled = scheme.disabled ? `:disabled="${scheme.disabled}"` : ''
   let str = `<el-form ref="${scheme.formRef}" :model="${scheme.formModel}" :rules="${scheme.formRules}" size="${scheme.size}" ${disabled} label-width="${scheme.labelWidth}px" ${labelPosition}>
       ${child}
-      ${buildFromBtns(scheme, type)}
+   
     </el-form>`
   if (someSpanIsNot24) {
     str = `<el-row :gutter="${scheme.gutter}">
         ${str}
       </el-row>`
   }
+  //  ${buildFromBtns(scheme, type)}
   return str
 }
 //按页面类型判断是否需要在页面的下方加按钮
@@ -170,11 +171,16 @@ const layouts = {
       label = ''
     }
     const required = !ruleTrigger[config.tag] && config.required ? 'required' : '';
-    let hideComponent = config.hideComponent ? false : true;
-    let keyName = handlerChangeEvent(scheme, 'hideComponent');
-    keyName ? hideComponent = keyName : '';
+
+
+    let hideComponent = config.hideComponent ? 'v-show=false' : '';//本身属性
+    let hideComponentName = handlerChangeEvent(scheme, 'hideComponent');
+    hideComponentName ? hideComponent = `v-show='${hideComponentName}'` : '';
+
+
+
     const tagDom = tags[config.tag] ? tags[config.tag](scheme) : null; //渲染每个组件
-    let str = `<el-form-item ${labelWidth} ${label} v-show='${hideComponent}'  prop="${scheme.__vModel__}" ${required}>
+    let str = `<el-form-item ${labelWidth} ${label} ${hideComponent}  prop="${scheme.__vModel__}" ${required}>
         ${tagDom}
       </el-form-item>`
     str = colWrapper(scheme, str);
@@ -186,7 +192,9 @@ const layouts = {
     const justify = scheme.type === 'default' ? '' : `justify="${scheme.justify}"`
     const align = scheme.type === 'default' ? '' : `align="${scheme.align}"`
     const gutter = scheme.gutter ? `:gutter="${scheme.gutter}"` : ''
-    const hideComponent = config.hideComponent ? false : true;
+    let hideComponent = config.hideComponent ? 'v-show=false' : '';
+    let hideComponentName = handlerChangeEvent(scheme, 'hideComponent');
+    hideComponentName ? hideComponent = `v-show='${hideComponentName}'` : '';
     const children = config.children.map(el => layouts[el.__config__.layout](el))
     let str = `<el-row ${type} ${justify}  ${hideComponent} ${align} ${gutter}>
       ${children.join('\n')}
@@ -564,7 +572,6 @@ function attrBuilder(el) {
     placeholder: el.placeholder ? `placeholder="${el.placeholder}"` : '',
     width: el.style && el.style.width ? ':style="{width: \'100%\'}"' : '',
     disabled: el.disabled ? ':disabled=\'true\'' : '',
-    hideComponent: el.__config__.hideComponent ? 'v-show=\'true\'' : '',
   }
 }
 

@@ -30,7 +30,11 @@
                 v-if="eventHandleItem.__config__&&eventHandleItem.__config__['hideComponent'] != undefined"
                 label="影藏组件"
               >
-                <el-switch v-model="ruleForm.hideComponent" />
+                <el-switch
+                  :active-value="true"
+                  :inactive-value="false"
+                  v-model="ruleForm.hideComponent"
+                />
               </el-form-item>
             </el-col>
           </el-row>
@@ -98,6 +102,7 @@ export default {
       let params = {};
       for (let i in ruleForm) {
         if (["editVModel"].includes(i)) {
+          //这里很关键，建立formId与__vModel__的映射关系
           params[i] =
             this.eventHandleItem.__vModel__ +
             "@@" +

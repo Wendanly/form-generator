@@ -46,7 +46,7 @@ const layouts = {
     //以下代码是react编写render函数的方式，渲染不同的组件
     return (
       <el-col
-        v-show={config.hideComponent == false ? true : false}
+        v-show={config.hideComponent ? false : true}
         span={config.span}
         class={className}
         nativeOnClick={event => {

@@ -587,11 +587,11 @@
             <el-switch v-model="activeData.__config__.showLabel" />
           </el-form-item>
           <!-- 是否显示组件 -->
-          <el-form-item v-if="activeData.__config__.hideComponent!== undefined" label="显示组件">
+          <el-form-item v-if="activeData.__config__.hideComponent!== undefined" label="影藏组件">
             <el-switch
               v-model="activeData.__config__.hideComponent"
-              :active-value="false"
-              :inactive-value="true"
+              :active-value="true"
+              :inactive-value="false"
             />
           </el-form-item>
           <el-form-item v-if="activeData.branding !== undefined" label="品牌烙印">
@@ -825,12 +825,8 @@
           </el-form-item>
         </el-form>
         <!-- 组件事件配置-->
-        <el-form
-          v-show="currentTab === 'eventConfig'&&showField&&['el-select'].includes(activeData.__config__.tag)"
-          size="small"
-          label-width="90px"
-        >
-          <el-form-item label="事件类型">
+        <el-form v-if="currentTab === 'eventConfig'&&showField" size="small" label-width="90px">
+          <el-form-item  v-if="['el-select'].includes(activeData.__config__.tag)" label="事件类型">
             <el-select
               style="width: 100%"
               v-model="activeData.__config__.eventType"
@@ -839,7 +835,11 @@
               <el-option v-for="item in eventOptions" :key="item" :label="item" :value="item"></el-option>
             </el-select>
           </el-form-item>
-          <el-form-item label="触发选项表达式" class="expression">
+          <el-form-item
+            label="触发选项表达式"
+            class="expression"
+            v-if="['el-select'].includes(activeData.__config__.tag)"
+          >
             <el-row :gutter="10" style="width: 100%;">
               <el-col :span="7" style="padding-left:0;">
                 <el-input size="mini" v-model="activeData.__slot__.value" disabled placeholder></el-input>
@@ -857,7 +857,7 @@
             </el-row>
           </el-form-item>
           <!--事件关联字段 -->
-          <template>
+          <template v-if="['el-select'].includes(activeData.__config__.tag)">
             <el-divider>字段展示</el-divider>
             <draggable
               class="draggable"
@@ -910,6 +910,36 @@
             <el-divider />
           </template>
           <!-- 结束 -->
+          <template v-if="['el-button'].includes(activeData.__config__.tag)">
+            <el-form-item label="接口地址">
+              <el-input
+                v-model="activeData.__config__.url"
+                :title="activeData.__config__.url"
+                placeholder="请输入接口地址"
+                clearable
+                @blur="$emit('fetch-data', activeData)"
+              >
+                <el-select
+                  slot="prepend"
+                  v-model="activeData.__config__.method"
+                  :style="{width: '85px'}"
+                  @change="$emit('fetch-data', activeData)"
+                >
+                  <el-option label="get" value="get" />
+                  <el-option label="post" value="post" />
+                  <el-option label="put" value="put" />
+                  <el-option label="delete" value="delete" />
+                </el-select>
+              </el-input>
+            </el-form-item>
+            <el-form-item label="数据位置">
+              <el-input
+                v-model="activeData.__config__.dataPath"
+                placeholder="请输入数据位置"
+                @blur="$emit('fetch-data', activeData)"
+              />
+            </el-form-item>
+          </template>
         </el-form>
       </el-scrollbar>
     </div>
